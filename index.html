@@ -1382,6 +1382,7 @@
   }
   function txPage(){ var a=document.querySelector('section.page.active'); return a?a.id:''; }
   function txToggle(on){
+    if (on && window.ONL && ONL.on && !ONL.synced){ alert('Trang đang tải dữ liệu mới nhất từ mạng, xin đợi vài giây rồi bấm sửa lại.'); return; }
     txOn=on; document.body.classList.toggle('tx-editing', on);
     document.querySelectorAll('[data-tx]').forEach(function(el){ el.contentEditable = on; });
     // bật/tắt luôn phần sửa bài của Trang chủ và Tư liệu — chỉ một nút cho cả trang
@@ -2057,10 +2058,29 @@
     (mine.del||[]).forEach(function(id){ if (out.del.indexOf(id)<0) out.del.push(id); });
     return out;
   }
+  function isObj(x){ return x && typeof x==='object' && !Array.isArray(x); }
+  function mergeObj(base, mine, cur){
+    var out={}, keys={}; [base,mine,cur].forEach(function(o){ Object.keys(o||{}).forEach(function(k){ keys[k]=1; }); });
+    Object.keys(keys).forEach(function(k){
+      var b=base?base[k]:undefined, m=mine?mine[k]:undefined, c=cur?cur[k]:undefined;
+      if (JSON.stringify(m)===JSON.stringify(b)){ if (c!==undefined) out[k]=c; return; }        // mình không sửa phần này
+      if (isObj(m) && isObj(c)){ out[k]=mergeObj(isObj(b)?b:{}, m, c); return; }
+      if (Array.isArray(m) && Array.isArray(c) && m.concat(c).every(function(x){ return isObj(x) && x.id; })){   // danh sách có mã: tin tức, ngày giỗ thêm…
+        var bi={}; (Array.isArray(b)?b:[]).forEach(function(x){ bi[x.id]=JSON.stringify(x); });
+        var mi={}; m.forEach(function(x){ mi[x.id]=x; });
+        var res=c.filter(function(x){ return !(bi[x.id] && !mi[x.id]); });                     // mình đã xoá
+        m.forEach(function(x){ if (bi[x.id]!==JSON.stringify(x)){ res=res.filter(function(y){ return y.id!==x.id; }); res.push(x); } });
+        out[k]=res; return;
+      }
+      if (m!==undefined) out[k]=m;
+    });
+    return out;
+  }
   var pushTimers={};
   function pushKey(k, v){
     if (!ONL.on || !canEdit()) return;
     if (GP_TEST){ toast('Bản chạy thử: thay đổi chỉ hiện trên máy này, không lưu lên mạng'); return; }
+    if (!ONL.synced){ alert('Trang chưa tải xong dữ liệu mới nhất từ mạng (mạng đang chậm). Thay đổi CHƯA được lưu lên mạng — xin đợi vài giây, tải lại trang rồi sửa lại.'); return; }
     clearTimeout(pushTimers[k]);
     pushTimers[k]=setTimeout(function(){
       var ref=ONL.db.collection('kv').doc(k), ts=firebase.firestore.FieldValue.serverTimestamp();
@@ -2072,7 +2092,17 @@
           var merged=JSON.stringify(mergeOv(base, JSON.parse(v), cur));
           tx.set(ref,{v:merged, by:ONL.user.email, ts:ts}); ONL.base[k]=merged; ONL.rawSet.call(localStorage,k,merged);
         }); });
-      } else { p=ref.set({v:v, by:ONL.user.email, ts:ts}); ONL.base[k]=v; }
+      } else {
+        // gộp theo từng phần: chỉ ghi những phần mình thực sự sửa, giữ nguyên phần người khác vừa sửa
+        p=ONL.db.runTransaction(function(tx){ return tx.get(ref).then(function(s){
+          var out=v;
+          try{
+            var mine=JSON.parse(v), base=JSON.parse(ONL.base[k]||'null'), cur=s.exists?JSON.parse(s.data().v):null;
+            if (isObj(mine) && isObj(cur)) out=JSON.stringify(mergeObj(isObj(base)?base:{}, mine, cur));
+          }catch(e){}
+          tx.set(ref,{v:out, by:ONL.user.email, ts:ts}); ONL.base[k]=out; if (out!==v) ONL.rawSet.call(localStorage,k,out);
+        }); });
+      }
       p.then(function(){ ONL.db.collection('history').add({ts:ts, email:ONL.user.email, key:k}); toast('Đã lưu lên mạng'); })
        .catch(function(e){ alert('Chưa lưu được lên mạng: '+(e.message||e)); });
     }, 700);
@@ -2210,6 +2240,7 @@
       setMode(); galOnline(); gopyOnline();
       // tải bản chung về máy; nếu khác bản trên máy thì nạp lại trang 1 lần
       ONL.db.collection('kv').get().then(function(q){
+        ONL.synced=true; document.body.classList.remove('gp-loading');
         var changed=false, seen={};
         q.docs.forEach(function(d){ var v=d.data().v; ONL.base[d.id]=v; seen[d.id]=1;
           if (localStorage.getItem(d.id)!==v){ ONL.rawSet.call(localStorage,d.id,v); changed=true; } });
