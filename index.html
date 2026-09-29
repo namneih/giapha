@@ -908,6 +908,7 @@
 <button class="btn small secondary" id="sd-up" onclick="sdUp()" type="button">↑ Lên một đời</button>
 <button class="btn small secondary" onclick="sdZoom(1.25)" type="button">＋</button>
 <button class="btn small secondary" onclick="sdZoom(0.8)" type="button">－</button>
+<button class="btn small" onclick="sdPhado()" type="button">🐉 Tải phả đồ rồng phượng</button>
 <button class="btn small secondary" onclick="sdPng()" type="button">⤓ Tải ảnh</button>
 <button class="btn small secondary" onclick="sdSvgDl()" title="Nét ở mọi cỡ, mở bằng Chrome để xem hoặc in khổ lớn" type="button">⤓ Tải bản in (SVG)</button>
 <label class="btn small secondary admin-inline" style="cursor:pointer">🐉 Đổi hình khung tiêu đề<input accept="image/*" hidden="" onchange="imgChange('sodo',this);setTimeout(sdDraw,400)" type="file"/></label>
@@ -2204,11 +2205,12 @@
     place(tree, LEFT);
     return {nodes:nodes, w:tree.w+LEFT+HG, h:TOP+rows*(NH+VG)-VG+TOP+6, rows:rows, cut:cut, root:root};
   }
-  function sdSvg(L, hi){
+  function sdSvg(L, hi, opt){
+    opt=opt||{};
     var hImg=(document.querySelector('img[data-slot="sodo"]')||{}).getAttribute, hsrc='';
     try{ hsrc=document.querySelector('img[data-slot="sodo"]').getAttribute('src')||''; }catch(e){}
     var hasImg=/^data:image\//.test(hsrc);
-    var HEAD=hasImg?210:96, FOOT=34, W=Math.max(L.w, 520), H=L.h+HEAD+FOOT, g0=L.root._g;
+    var HEAD=opt.bare?0:(hasImg?210:96), FOOT=opt.bare?0:34, W=opt.bare?L.w:Math.max(L.w, 520), H=L.h+HEAD+FOOT, g0=L.root._g;
     L.hd=HEAD;
     var s=['<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" font-family="Noto Serif,Times New Roman,Georgia,serif">'];
     s.push('<defs>'+
@@ -2219,15 +2221,15 @@
       '<linearGradient id="gT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3A2A14"/><stop offset="1" stop-color="#1E150A"/></linearGradient>'+
       '<linearGradient id="gGold" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#B08A3E"/><stop offset=".5" stop-color="#E4C77E"/><stop offset="1" stop-color="#B08A3E"/></linearGradient>'+
       '</defs>');
-    s.push('<rect width="100%" height="100%" fill="url(#gPaper)"/>');
-    s.push('<rect x="6" y="6" width="'+(W-12)+'" height="'+(H-12)+'" fill="none" stroke="#B08A3E" stroke-width="1.2"/><rect x="11" y="11" width="'+(W-22)+'" height="'+(H-22)+'" fill="none" stroke="#B08A3E" stroke-width=".5"/>');
+    if (!opt.bare) s.push('<rect width="100%" height="100%" fill="url(#gPaper)"/>');
+    if (!opt.bare) s.push('<rect x="6" y="6" width="'+(W-12)+'" height="'+(H-12)+'" fill="none" stroke="#B08A3E" stroke-width="1.2"/><rect x="11" y="11" width="'+(W-22)+'" height="'+(H-22)+'" fill="none" stroke="#B08A3E" stroke-width=".5"/>');
     // khung tiêu đề: SƠ ĐỒ TÔNG PHẢ + chi + ngành
     var rb=L.root._b, chi=rb==='G'?'CHI GIÁP':rb==='A'?'CHI ẤT':'HỌ NGUYỄN QUÝ';
     var isTop=L.root.id==='ROOT' || !L.root._par || (L.root._par && L.root._par.id==='ROOT') || (L.root._par2 && L.root._par2.id==='ROOT');
     var title=SD.only?'ĐƯỜNG NỐI HAI NGƯỜI TỚI TỔ CHUNG':'SƠ ĐỒ TÔNG PHẢ '+chi;
     var sub=SD.only?'Họ Nguyễn Quý · Đại Mỗ':(isTop?'':'Ngành cụ '+escapeHtml(L.root.name)+' · ')+'Gốc: '+escapeHtml(sdShort(L.root.name))+' ('+escapeHtml(fmtMa(L.root.ma))+') · '+L.rows+' đời';
     var mid=W/2;
-    if (hasImg){
+    if (opt.bare){} else if (hasImg){
       var iw=Math.min(W-40, 760), ih=190;
       s.push('<image href="'+hsrc+'" x="'+(mid-iw/2)+'" y="10" width="'+iw+'" height="'+ih+'" preserveAspectRatio="xMidYMid meet"/>');
       s.push('<text x="'+mid+'" y="'+(10+ih/2+2)+'" text-anchor="middle" font-size="24" font-weight="700" letter-spacing="2" fill="#6E1A14" stroke="#FBF3DC" stroke-width="3" paint-order="stroke">'+title+'</text>'+
@@ -2239,10 +2241,10 @@
         '<text x="0" y="65" text-anchor="middle" font-size="10.5" fill="#EBD9B0">'+sub+'</text></g>');
     }
     var now=new Date();
-    s.push('<text x="'+mid+'" y="'+(H-14)+'" text-anchor="middle" font-size="10.5" font-style="italic" fill="#6B5A3A">Gia phả họ Nguyễn Quý · Đại Mỗ — trích lục ngày '+now.getDate()+'/'+(now.getMonth()+1)+'/'+now.getFullYear()+'</text>');
+    if (!opt.bare) s.push('<text x="'+mid+'" y="'+(H-14)+'" text-anchor="middle" font-size="10.5" font-style="italic" fill="#6B5A3A">Gia phả họ Nguyễn Quý · Đại Mỗ — trích lục ngày '+now.getDate()+'/'+(now.getMonth()+1)+'/'+now.getFullYear()+'</text>');
     s.push('<g transform="translate(0,'+HEAD+')">');
     for (var i=0;i<L.rows;i++){ var yy=TOP+i*(NH+VG);
-      if (i%2===0) s.push('<rect x="14" y="'+(yy-VG/2+6)+'" width="'+(W-28)+'" height="'+(NH+VG)+'" fill="#EADBB8" opacity=".28"/>');
+      if (i%2===0 && !opt.bare) s.push('<rect x="14" y="'+(yy-VG/2+6)+'" width="'+(W-28)+'" height="'+(NH+VG)+'" fill="#EADBB8" opacity=".28"/>');
       s.push('<g transform="translate(30,'+(yy+NH/2)+')"><rect x="-17" y="-17" width="34" height="34" rx="4" fill="#9C1D24" transform="rotate(45)"/><rect x="-14" y="-14" width="28" height="28" rx="3" fill="none" stroke="#F3DFA6" stroke-width=".8" transform="rotate(45)"/>'+
         '<text x="0" y="-2" text-anchor="middle" font-size="8.5" fill="#F3DFA6">ĐỜI</text><text x="0" y="11" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">'+(g0+i)+'</text></g>'); }
     // đường nối
@@ -2352,6 +2354,37 @@
     o.querySelector('img').src=u; var a=o.querySelector('#sd-prev-save'); a.href=u; a.download=sdFileName('jpg'); o.hidden=false;
   }
   function sdPrevClose(){ var o=document.getElementById('sd-prev'); if (o) o.hidden=true; }
+  // ---- Phả đồ theo mẫu 2019: nền rồng, cuốn thư, trống đồng (ảnh phado-nen.jpg) ----
+  function sdPhado(){
+    if (!SD.root) SD.root=sdNodes();
+    var L=sdLayout(SD.root, SD.only?99:SD.depth, SD.only), svgTxt=sdSvg(L, SD.only, {bare:true});
+    var tw=L.w, th=L.h, mob=/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+    var CW=mob?7400:12000, CH=Math.round(CW/1.9145);
+    var bx=.045*CW, by=.33*CH, bw=.91*CW, bh=.62*CH, sc=Math.min(bw/tw, bh/th, 8);
+    if (sc<.3 && !confirm('Cây này rộng quá so với khổ phả đồ nên chữ sẽ rất nhỏ. Nên chọn gốc thấp hơn hoặc giảm số đời. Vẫn tạo?')) return;
+    sdToast('Đang dựng phả đồ…');
+    var bg=new Image(); bg.crossOrigin='anonymous';
+    bg.onerror=function(){ alert('Chưa có file nền "phado-nen.jpg" trên trang. Xin tải file này lên GitHub cùng chỗ với index.html.'); };
+    bg.onload=function(){
+      var tr=new Image(), url=URL.createObjectURL(new Blob(['<?xml version="1.0" encoding="UTF-8"?>\n'+svgTxt],{type:'image/svg+xml;charset=utf-8'}));
+      tr.onload=function(){
+        var c=document.createElement('canvas'); c.width=CW; c.height=CH; var x=c.getContext('2d');
+        x.drawImage(bg,0,0,CW,CH);
+        var dw=tw*sc, dh=th*sc; x.drawImage(tr, bx+(bw-dw)/2, by, dw, dh); URL.revokeObjectURL(url);
+        // dòng chữ phụ trong cuốn thư + dòng cuối
+        var rb=L.root._b, chi=rb==='G'?'Chi Giáp':rb==='A'?'Chi Ất':'Họ Nguyễn Quý';
+        var sub=SD.only?'Đường nối hai người tới tổ chung':chi+(L.root.id==='ROOT'||!L.root._par?'':' · Ngành cụ '+sdShort(L.root.name));
+        x.textAlign='center'; x.font='italic 700 '+Math.round(CW*.0105)+'px "Noto Serif",Georgia,serif';
+        x.lineWidth=CW*.0016; x.strokeStyle='#6E1A14'; x.strokeText(sub, CW/2, CH*.178); x.fillStyle='#FFE58A'; x.fillText(sub, CW/2, CH*.178);
+        var d=new Date(); x.font='italic '+Math.round(CW*.0068)+'px "Noto Serif",Georgia,serif'; x.fillStyle='#5A2F18';
+        x.fillText('Gia phả họ Nguyễn Quý · Đại Mỗ — Gốc: '+sdShort(L.root.name)+' ('+fmtMa(L.root.ma)+') · '+L.rows+' đời — trích lục ngày '+d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear(), CW/2, CH*.968);
+        try{ c.toBlob(function(b){ if (!b){ alert('Máy không đủ bộ nhớ để tạo phả đồ.'); return; } sdPreview(b); }, 'image/jpeg', .9); }
+        catch(e){ alert('Không tạo được ảnh (hãy mở trang từ địa chỉ trên mạng, không mở file trên máy).'); }
+      };
+      tr.src=url;
+    };
+    bg.src='phado-nen.jpg?v=1';
+  }
   function sdSvgDl(){ var t=sdSvgText(); if (t) sdDl(new Blob([t],{type:'image/svg+xml;charset=utf-8'}), sdFileName('svg')); }
   // ---- xưng hô ----
   var XH={a:null,b:null};
