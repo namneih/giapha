@@ -908,10 +908,9 @@
 <button class="btn small secondary" id="sd-up" onclick="sdUp()" type="button">↑ Lên một đời</button>
 <button class="btn small secondary" onclick="sdZoom(1.25)" type="button">＋</button>
 <button class="btn small secondary" onclick="sdZoom(0.8)" type="button">－</button>
-<button class="btn small" onclick="sdPhado()" type="button">🐉 Tải phả đồ rồng phượng</button>
-<button class="btn small secondary" onclick="sdPng()" type="button">⤓ Tải ảnh</button>
+<button class="btn small" onclick="sdPhado()" type="button">🐉 Tải ảnh sơ đồ</button>
+<button class="btn small secondary" onclick="sdPng()" type="button">⤓ Ảnh nền giấy</button>
 <button class="btn small secondary" onclick="sdSvgDl()" title="Nét ở mọi cỡ, mở bằng Chrome để xem hoặc in khổ lớn" type="button">⤓ Tải bản in (SVG)</button>
-<label class="btn small secondary admin-inline" style="cursor:pointer">🐉 Đổi hình khung tiêu đề<input accept="image/*" hidden="" onchange="imgChange('sodo',this);setTimeout(sdDraw,400)" type="file"/></label>
 <img alt="" data-slot="sodo" hidden="" src="data:,"/>
 </div>
 <p class="branch-desc" id="sd-head"></p>
@@ -2209,7 +2208,7 @@
     opt=opt||{};
     var hImg=(document.querySelector('img[data-slot="sodo"]')||{}).getAttribute, hsrc='';
     try{ hsrc=document.querySelector('img[data-slot="sodo"]').getAttribute('src')||''; }catch(e){}
-    var hasImg=/^data:image\//.test(hsrc);
+    var hasImg=false;   // bỏ tính năng thay khung tiêu đề trên màn hình (gây nhầm)
     var HEAD=opt.bare?0:(hasImg?210:96), FOOT=opt.bare?0:34, W=opt.bare?L.w:Math.max(L.w, 520), H=L.h+HEAD+FOOT, g0=L.root._g;
     L.hd=HEAD;
     var s=['<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" font-family="Noto Serif,Times New Roman,Georgia,serif">'];
