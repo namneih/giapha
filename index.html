@@ -5,6 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Gia Phả Họ Nguyễn Quý — Đại Mỗ</title>
 <meta name="theme-color" content="#1C2B45">
+<meta name="description" content="Gia phả họ Nguyễn Quý, làng Đại Mỗ — hơn 500 năm: danh mục các đời Chi Giáp, Chi Ất, sơ đồ tông phả, ngày giỗ, tư liệu lịch sử.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Gia Phả Họ Nguyễn Quý">
+<meta property="og:title" content="Gia Phả Dòng Họ Nguyễn Quý — Làng Đại Mỗ">
+<meta property="og:description" content="Hơn 500 năm một dòng họ. Tra cứu gia phả, sơ đồ tông phả, ngày giỗ và tư liệu lịch sử họ Nguyễn Quý.">
+<meta property="og:url" content="https://namneih.github.io/giapha/">
+<meta property="og:image" content="https://namneih.github.io/giapha/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="vi_VN">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='4' width='56' height='56' rx='8' fill='%239C1D24'/%3E%3Crect x='9' y='9' width='46' height='46' rx='5' fill='none' stroke='%23F3DFA6' stroke-width='2'/%3E%3Ctext x='32' y='43' text-anchor='middle' font-family='serif' font-size='30' font-weight='700' fill='%23F3DFA6'%3EQ%3C/text%3E%3C/svg%3E">
+
 <style>
   /* Bảng màu lấy từ banner: mực tàu, vàng son, đỏ triện, giấy dó */
   :root {
@@ -958,11 +971,16 @@
 </div>
 <h3 class="gio-month">Lịch sử chỉnh sửa gần đây</h3>
 <div id="adm-hist"></div>
+<h3 class="gio-month">Sao lưu dữ liệu</h3>
+<p class="branch-desc">Tải về một file chứa toàn bộ nội dung trên mạng (danh mục đã sửa, trang chủ, tin tức, ngày giỗ, ảnh, phân quyền, góp ý). Nên tải mỗi tháng một lần và cất vào Google Drive hoặc Zalo "Cloud của tôi". Khi có sự cố, dùng file này để khôi phục.</p>
+<p class="form-note" id="adm-bk-info"></p>
+<div class="cta-row"><button class="btn small" onclick="adminBackup()" type="button">⤓ Tải bản sao lưu</button><label class="btn small secondary" style="cursor:pointer">⤒ Khôi phục từ file<input accept=".json,application/json" hidden="" onchange="adminRestore(this)" type="file"/></label></div>
 <div class="cta-row" style="margin-top:20px"><button class="btn small secondary" onclick="adminUploadLocal()" type="button">⇪ Đưa dữ liệu đã sửa trên máy này lên mạng</button></div>
 </div>
 </section>
 </div>
 <script>
+  var GP_HAS_FB = true;
   function showPage(id) {
     if (window.txOn){ if (confirm('Anh/chị đang sửa trang này. Lưu lại trước khi chuyển trang?')) txSave(); else return; }
     document.querySelectorAll('section.page').forEach(s => s.classList.toggle('active', s.id===id));
@@ -1871,6 +1889,43 @@
   txLoad(); document.addEventListener('DOMContentLoaded', txLoad);
 
   GP.render('G'); GP.render('A');
+  // ---- Sao lưu / khôi phục toàn bộ dữ liệu trên mạng (chỉ quản trị) ----
+  function adminBackup(){
+    if (!ONL.on || ONL.role!=='admin'){ alert('Chỉ quản trị mới sao lưu được.'); return; }
+    var cols=['kv','gallery','roles','gopy','history'], out={ngay:new Date().toISOString(), nguoi:ONL.user.email, du_lieu:{}};
+    toast('Đang gom dữ liệu để sao lưu…');
+    Promise.all(cols.map(function(c){ return ONL.db.collection(c).get().then(function(q){
+      out.du_lieu[c]={}; q.docs.forEach(function(d){ var x=d.data(), y={};
+        Object.keys(x).forEach(function(k){ var v=x[k]; y[k]=(v && v.toDate) ? {__ts:v.toDate().toISOString()} : v; }); out.du_lieu[c][d.id]=y; });
+    }).catch(function(){ out.du_lieu[c]='(không đọc được)'; }); })).then(function(){
+      var blob=new Blob([JSON.stringify(out)],{type:'application/json'}), a=document.createElement('a'), d=new Date();
+      a.href=URL.createObjectURL(blob); a.download='giapha-saoluu-'+d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)+'.json';
+      document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },1500);
+      var n=0; Object.keys(out.du_lieu).forEach(function(c){ if (typeof out.du_lieu[c]==='object') n+=Object.keys(out.du_lieu[c]).length; });
+      try{ localStorage.setItem('gp_last_backup', new Date().toLocaleString('vi-VN')); }catch(e){}
+      adminBackupInfo(); toast('Đã tải bản sao lưu ('+n+' mục). Hãy cất file này vào Google Drive / Zalo "Cloud của tôi".');
+    });
+  }
+  function adminBackupInfo(){ var el=document.getElementById('adm-bk-info'); if (!el) return; var t=''; try{ t=localStorage.getItem('gp_last_backup')||''; }catch(e){} el.textContent = t ? 'Lần tải sao lưu gần nhất trên máy này: '+t : 'Máy này chưa tải bản sao lưu nào.'; }
+  function adminRestore(inp){
+    var f=inp.files && inp.files[0]; inp.value=''; if (!f) return;
+    if (!ONL.on || ONL.role!=='admin'){ alert('Chỉ quản trị mới khôi phục được.'); return; }
+    if (GP_TEST){ alert('Bản chạy thử: không khôi phục vào dữ liệu thật.'); return; }
+    var rd=new FileReader(); rd.onload=function(){
+      var data; try{ data=JSON.parse(rd.result); }catch(e){ alert('File không đúng định dạng sao lưu.'); return; }
+      if (!data || !data.du_lieu || !data.du_lieu.kv){ alert('File không phải bản sao lưu gia phả.'); return; }
+      var kvN=Object.keys(data.du_lieu.kv).length, gN=data.du_lieu.gallery?Object.keys(data.du_lieu.gallery).length:0;
+      if (!confirm('KHÔI PHỤC bản sao lưu ngày '+new Date(data.ngay).toLocaleString('vi-VN')+'?\n\n• '+kvN+' mục nội dung (danh mục, trang chủ, tin tức, ngày giỗ…)\n• '+gN+' ảnh\n\nNội dung hiện tại sẽ bị THAY bằng bản sao lưu. Phân quyền và góp ý giữ nguyên.')) return;
+      if (prompt('Để chắc chắn, xin gõ chữ KHOIPHUC')!=='KHOIPHUC') return;
+      var jobs=[];
+      Object.keys(data.du_lieu.kv).forEach(function(id){ var x=data.du_lieu.kv[id]; jobs.push(ONL.db.collection('kv').doc(id).set({v:x.v, by:ONL.user.email+' (khôi phục)', ts:firebase.firestore.FieldValue.serverTimestamp()})); });
+      if (data.du_lieu.gallery) Object.keys(data.du_lieu.gallery).forEach(function(id){ var x=Object.assign({},data.du_lieu.gallery[id]); delete x.ts; jobs.push(ONL.db.collection('gallery').doc(id).set(x)); });
+      Promise.all(jobs).then(function(){ ONL.db.collection('history').add({ts:firebase.firestore.FieldValue.serverTimestamp(), email:ONL.user.email, key:'khôi phục sao lưu'}); alert('Đã khôi phục xong. Trang sẽ tải lại.'); sessionStorage.removeItem('gp_sig'); location.reload(); })
+        .catch(function(e){ alert('Khôi phục chưa xong: '+e.message); });
+    }; rd.readAsText(f);
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){ if (window.adminBackupInfo) adminBackupInfo(); });
   function authPop(on){ var p=document.getElementById('auth-pop'); if (!p) return; p.hidden = (on===false) ? true : !p.hidden; }
 
   // ---- chọn giao diện: Trang trọng / Hoài niệm (lưu theo từng máy) ----
@@ -1903,6 +1958,11 @@
   // ảnh: online lưu ở bản ghi riêng, trên máy lưu ở bộ nhớ trình duyệt
   function nwImgGet(id, cb){
     if (NW_STATE.img[id]!==undefined) return cb(NW_STATE.img[id]);
+    // trang có dùng mạng nhưng Firebase chưa tải xong: đợi rồi lấy ảnh (không lấy nhầm bộ nhớ máy)
+    if (window.GP_HAS_FB && !(window.ONL && ONL.on && ONL.db)){
+      var tries=(nwImgGet._t=nwImgGet._t||{}); tries[id]=(tries[id]||0)+1;
+      if (tries[id]<80) return setTimeout(function(){ nwImgGet(id, cb); }, 300);
+    }
     if (window.ONL && ONL.on){ ONL.db.collection('gallery').doc('nimg_'+id).get().then(function(d){ NW_STATE.img[id]=d.exists?d.data().src:''; cb(NW_STATE.img[id]); }).catch(function(){ cb(''); }); }
     else { NW_STATE.img[id]=localStorage.getItem('gp2_nimg_'+id)||''; cb(NW_STATE.img[id]); }
   }
@@ -2480,7 +2540,7 @@
       document.getElementById('adm-roles').innerHTML=h;
     });
     db.collection('history').orderBy('ts','desc').limit(30).get().then(function(q){
-      var name={gp2_ov_G:'Danh mục Chi Giáp',gp2_ov_A:'Danh mục Chi Ất',gp2_gio:'Ngày giỗ',gp2_texts:'Chữ trên trang',gp2_news:'Tin tức',gp2_img_banner:'Ảnh banner',gp2_img_book:'Ảnh cuốn gia phả',gp2_img_gate:'Ảnh cổng nhà thờ',gp2_img_tree:'Ảnh cây gia tộc',giapha_trangchu_demo:'Trang chủ',giapha_tulieu_demo:'Tư liệu'};
+      var name={gp2_ov_G:'Danh mục Chi Giáp',gp2_ov_A:'Danh mục Chi Ất',gp2_gio:'Ngày giỗ','khôi phục sao lưu':'Khôi phục sao lưu',gp2_texts:'Chữ trên trang',gp2_news:'Tin tức',gp2_img_banner:'Ảnh banner',gp2_img_book:'Ảnh cuốn gia phả',gp2_img_gate:'Ảnh cổng nhà thờ',gp2_img_tree:'Ảnh cây gia tộc',giapha_trangchu_demo:'Trang chủ',giapha_tulieu_demo:'Tư liệu'};
       document.getElementById('adm-hist').innerHTML=q.docs.map(function(d){ var x=d.data();
         return '<div class="gio-row"><span class="gio-date" style="min-width:auto;font-size:13px">'+(x.ts&&x.ts.toDate?x.ts.toDate().toLocaleString('vi-VN'):'')+'</span><span class="gio-name">'+escapeHtml(x.email)+' sửa '+escapeHtml(name[x.key]||x.key)+'</span></div>'; }).join('')||'<p class="empty-note">Chưa có.</p>';
     });
