@@ -954,7 +954,8 @@
       if (par) h+='<p class="parent-line">'+(par.nu?'Con của bà: ':'Con của: ')+nmH(par)+' <span class="mono">('+fmtMa(par.ma)+')</span>'+(par._par?'<br><span class="gp-lineage">'+(par.nu?'Cháu ngoại của: ':'Cháu của: ')+nmH(par._par)+'</span>':(par.pname?'<br><span class="gp-lineage">Cháu của: '+escapeHtml(par.pname)+'</span>':''))+'</p>';
       else if (r.pname) h+='<p class="parent-line">Con của: '+escapeHtml(r.pname)+' <span class="mono">(04 T)</span></p>';
       else h+='<p class="parent-line gp-warn-t">Chưa xác định được cha</p>';
-      if (r.me && par){ var pv=vosOf(par), mv=pv[r.me-1]; if (mv) h+='<p class="meta"><b>Mẹ:</b> '+escapeHtml(mv.ten)+(pv.length>1?' (vợ '+r.me+')':'')+'</p>'; }
+      if (par && !par.nu){ var pv=vosOf(par), mv=r.me ? pv[r.me-1] : (pv.length===1 ? pv[0] : null);   // cha chỉ có một vợ: tự hiểu là mẹ
+        if (mv && mv.ten) h+='<p class="meta"><b>Mẹ:</b> '+escapeHtml(mv.ten)+(pv.length>1?' (vợ '+r.me+')':'')+'</p>'; }
       vos.forEach(function(v,i){ h+='<p class="meta"><b>'+(vos.length>1?'Vợ '+(i+1):'Vợ')+':</b> '+escapeHtml(v.ten)+'</p>'; });
       if (r.gio) h+='<p class="meta"><b>Giỗ:</b> '+escapeHtml(r.gio)+' âm lịch</p>';
       h+=infoHtml(r)+kidsLine(r);
