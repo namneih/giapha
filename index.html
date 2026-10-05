@@ -1027,7 +1027,9 @@
       sib.splice(pos-1, 0, me);
       sib.forEach(function(k, i){ if (k.o!==i+1) setMod(b, k.id, {o:i+1}); });
     }
+    function notSynced(){ if (window.ONL && ONL.on && !ONL.synced){ alert('Trang đang tải dữ liệu mới nhất từ mạng (mạng chậm). Xin đợi vài giây rồi thao tác lại, để thay đổi được lưu lên mạng cho mọi người cùng thấy.'); return true; } return false; }
     function edit(b, id, btn){
+      if (notSynced()) return;
       if (window.gpCanEdit && !gpCanEdit(b, S[b].byId[id])){ alert('Người này nằm ngoài phạm vi anh/chị được giao sửa. Xin gửi góp ý để quản trị cập nhật.'); return; }
       var card=btn.closest('.card'), ex=card.querySelector('.edit-panel');
       if (ex){ ex.remove(); return; }
@@ -1087,6 +1089,7 @@
     }
     function isDesc(a, b0){ var x=a; while(x){ if (x===b0) return true; x=x._par; } return false; }
     function save(b, id, btn){
+      if (notSynced()) return;
       var s=S[b], r=s.byId[id], panel=btn.closest('.edit-panel');
       var w=readWives(panel);
       var ch={ name:panel.querySelector('.e-name').value.trim()||'Chưa rõ tên', title:panel.querySelector('.e-title').value.trim(),
@@ -1120,6 +1123,7 @@
       setMod(b, id, ch); saveOv(b, s.ov); render(b); reveal(b, id);
     }
     function del(b, id){
+      if (notSynced()) return;
       var s=S[b], r=s.byId[id], n=0;
       (function cnt(x){ x._k.forEach(function(k){ n++; cnt(k); }); })(r);
       if (!confirm(n? 'Người này có '+n+' con cháu bên dưới. Xoá sẽ ẩn luôn cả nhánh này. Chắc chắn xoá?' : 'Xoá người này khỏi cây?')) return;
@@ -1127,9 +1131,10 @@
       if (added) s.ov.add=s.ov.add.filter(function(a){ return a.id!==id; }); else s.ov.del.push(id);
       saveOv(b, s.ov); render(b);
     }
-    function openAdd(b){ dl(b); var f=document.getElementById('add-'+b); f.style.display='block'; f.querySelector('.a-parent').focus(); }
+    function openAdd(b){ if (notSynced()) return; dl(b); var f=document.getElementById('add-'+b); f.style.display='block'; f.querySelector('.a-parent').focus(); }
     function closeAdd(b){ var f=document.getElementById('add-'+b); f.style.display='none'; f.querySelectorAll('input,textarea').forEach(function(i){ i.value=''; }); var nuc=f.querySelector('.a-nu'); if (nuc) nuc.checked=false; f.querySelector('.a-rel').value='1'; f.querySelector('.a-me').innerHTML='<option value="">— chưa rõ / sách không ghi —</option>'; }
     function add(b){
+      if (notSynced()) return;
       var s=S[b], f=document.getElementById('add-'+b);
       var pma=rawMa(extractMaFromInput(f.querySelector('.a-parent').value)), par=pma? s.byMa[pma] : null;
       if (!par){ alert('Xin chọn đúng tên người đã biết từ danh sách gợi ý (có kèm mã số).'); return; }
@@ -1401,6 +1406,8 @@
       if (el._orig===undefined) el._orig=el.innerHTML;
       var v=m[el.dataset.tx]; el.innerHTML = (v!=null) ? v : el._orig;
     });
+    // số người trong đoạn giới thiệu luôn lấy theo dữ liệu hiện tại
+    if (window.GP) ['G','A'].forEach(function(b){ var c=document.getElementById('count-'+b); if (c) c.textContent=GP.list(b).length; });
   }
   function txPage(){ var a=document.querySelector('section.page.active'); return a?a.id:''; }
   function txToggle(on){
@@ -2246,17 +2253,40 @@
       ONL.rawSet=Storage.prototype.setItem;
       Storage.prototype.setItem=function(k,v){ ONL.rawSet.call(this,k,v); if (this===localStorage && isSyncKey(k)) pushKey(k,v); };
       setMode(); galOnline(); gopyOnline();
-      // tải bản chung về máy; nếu khác bản trên máy thì nạp lại trang 1 lần
-      ONL.db.collection('kv').get().then(function(q){
+      // tải bản chung: phần chữ trước (nhẹ, cho phép sửa ngay), ảnh tải sau; không nạp lại cả trang
+      var IMGK=['gp2_img_banner','gp2_img_book','gp2_img_gate','gp2_img_tree','gp2_img_sodo'];
+      function refreshAll(){
+        try{ GP.render('G'); GP.render('A'); }catch(e){}
+        ['loadTrangChu','loadTulieu','txLoad','renderNews','renderGioList','homeStats'].forEach(function(f){ try{ if (window[f]) window[f](); }catch(e){} });
+      }
+      function applyKv(docs){
+        var changed=[], seen={};
+        docs.forEach(function(d){ if (IMGK.indexOf(d.id)>=0) return; var v=d.data().v; ONL.base[d.id]=v; seen[d.id]=1;
+          if (localStorage.getItem(d.id)!==v){ ONL.rawSet.call(localStorage,d.id,v); changed.push(d.id); } });
+        if (docs.length) for (var i=localStorage.length-1;i>=0;i--){ var k=localStorage.key(i); if (isSyncKey(k) && IMGK.indexOf(k)<0 && !seen[k]){ localStorage.removeItem(k); changed.push(k); } }
         ONL.synced=true; document.body.classList.remove('gp-loading');
-        var changed=false, seen={};
-        q.docs.forEach(function(d){ if (d.id==='gp2_img_sodo'){ ONL.kvOld=true; return; } var v=d.data().v; ONL.base[d.id]=v; seen[d.id]=1;
-          if (localStorage.getItem(d.id)!==v){ ONL.rawSet.call(localStorage,d.id,v); changed=true; } });
-        // chỉ xoá bản riêng trên máy khi trên mạng đã có dữ liệu chung (tránh mất dữ liệu lúc mới khởi tạo)
-        if (q.docs.length) for (var i=localStorage.length-1;i>=0;i--){ var k=localStorage.key(i); if (isSyncKey(k) && !seen[k]){ localStorage.removeItem(k); changed=true; } }
-        var sig=JSON.stringify(Object.keys(seen).sort().map(function(k){ return [k,(ONL.base[k]||'').length]; }));
-        if (changed && sessionStorage.getItem('gp_sig')!==sig){ sessionStorage.setItem('gp_sig',sig); location.reload(); }
-      });
+        if (!changed.length) return;
+        var simple=changed.every(function(k){ return /^(gp2_ov_|giapha_trangchu|giapha_tulieu|gp2_texts|gp2_news|gp2_gio)/.test(k); });
+        if (simple) refreshAll();
+        else if (sessionStorage.getItem('gp_rl')!==changed.join()){ sessionStorage.setItem('gp_rl',changed.join()); location.reload(); }
+      }
+      function loadImgs(){
+        IMGK.forEach(function(k){
+          ONL.db.collection('kv').doc(k).get().then(function(d){
+            if (k==='gp2_img_sodo'){ if (d.exists) ONL.kvOld=true; return; }
+            var slot=k.replace('gp2_img_',''), v=d.exists?d.data().v:'';
+            if (d.exists) ONL.base[k]=v;
+            if ((localStorage.getItem(k)||'')!==v){ if (v) ONL.rawSet.call(localStorage,k,v); else localStorage.removeItem(k); try{ if (window.imgApply) imgApply(slot, v); }catch(e){} }
+          }).catch(function(){});
+        });
+      }
+      (function kvSync(n){
+        var q=null;
+        try{ q=ONL.db.collection('kv').where(firebase.firestore.FieldPath.documentId(),'not-in',IMGK); }catch(e){ q=null; }
+        var run=function(qq, full){ return qq.get().then(function(s){ applyKv(s.docs); if (!full) loadImgs(); else { s.docs.forEach(function(d){ if (d.id==='gp2_img_sodo') ONL.kvOld=true; }); loadImgs(); } }); };
+        (q ? run(q,false).catch(function(){ return run(ONL.db.collection('kv'), true); }) : run(ONL.db.collection('kv'), true))
+          .catch(function(){ if (n<6) setTimeout(function(){ kvSync(n+1); }, 2000*(n+1)); else toast('Không kết nối được máy chủ dữ liệu. Xin kiểm tra mạng rồi tải lại trang.'); });
+      })(0);
       firebase.auth().onAuthStateChanged(function(u){
         ONL.user=u; ONL.role='';
         if (!u){ setMode(); return; }
