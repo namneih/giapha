@@ -902,12 +902,22 @@
     }
     function joinYears(ns, nm){ ns=ns.trim(); nm=nm.trim(); if (!ns && !nm) return ''; if (!nm) return /^\d/.test(ns)?'sinh '+ns:ns; return (ns||'?')+' – '+nm; }
     function nm(r){ return escapeHtml(r.name||'Chưa rõ tên'); }
+    // Danh xưng: đời 1–14 gọi "Cụ"; từ đời 15: ≥70 tuổi "Cụ", 40–69 "Ông" (nữ: "Bà"), dưới 40 chỉ ghi tên
+    var NOW_Y=new Date().getFullYear();
+    function honor(r){
+      var n=r.name||''; if (!n || /^(cụ|ông|bà|liệt sĩ)(\s|$)/i.test(n) || n==='Chưa rõ tên') return '';
+      if ((r._g||99)<=14) return 'Cụ ';
+      var m=String(splitYears(r)[0]||'').match(/\b(1[5-9]\d\d|20\d\d)\b/); if (!m) return '';
+      var age=NOW_Y-(+m[1]);
+      return age>=70 ? 'Cụ ' : age>=40 ? (r.nu?'Bà ':'Ông ') : '';
+    }
+    function nmH(r){ return escapeHtml(honor(r))+nm(r); }
     function goiOf(r){
       if (r.goi!==undefined) return r.goi;
       var m=String(r.info||'').match(/thường gọi:\s*([^;.\n(]{2,40})/i);   // chỉ lấy dòng sổ chi trưởng ghi về chính người này
       return m ? m[1].trim() : '';
     }
-    function nmLs(r){ return r.ls ? '<span class="ls-badge" title="Tổ quốc ghi công">★ TỔ QUỐC GHI CÔNG</span> <span class="ls-name">Liệt sĩ '+nm(r)+'</span>' : nm(r); }
+    function nmLs(r){ return r.ls ? '<span class="ls-badge" title="Tổ quốc ghi công">★ TỔ QUỐC GHI CÔNG</span> <span class="ls-name">Liệt sĩ '+nm(r)+'</span>' : nmH(r); }
     function vosOf(r){ return getVos(r); }
     function kidsLine(r){
       if (!r._k.length) return '';
@@ -941,10 +951,10 @@
       var gq=goiOf(r); if (gq) h+='<p class="goi-line">Thường gọi: <b>'+escapeHtml(gq)+'</b></p>';
       if (r.ls) h+='<p class="ls-line">Liệt sĩ'+(r.lsk?' — hy sinh trong '+escapeHtml(r.lsk):'')+'</p>';
       if (t) h+='<p class="title">'+escapeHtml(t)+'</p>';
-      if (par) h+='<p class="parent-line">'+(par.nu?'Con của bà: ':'Con của: ')+nm(par)+' <span class="mono">('+fmtMa(par.ma)+')</span>'+(par._par?'<br><span class="gp-lineage">'+(par.nu?'Cháu ngoại của: ':'Cháu của: ')+nm(par._par)+'</span>':(par.pname?'<br><span class="gp-lineage">Cháu của: '+escapeHtml(par.pname)+'</span>':''))+'</p>';
+      if (par) h+='<p class="parent-line">'+(par.nu?'Con của bà: ':'Con của: ')+nmH(par)+' <span class="mono">('+fmtMa(par.ma)+')</span>'+(par._par?'<br><span class="gp-lineage">'+(par.nu?'Cháu ngoại của: ':'Cháu của: ')+nmH(par._par)+'</span>':(par.pname?'<br><span class="gp-lineage">Cháu của: '+escapeHtml(par.pname)+'</span>':''))+'</p>';
       else if (r.pname) h+='<p class="parent-line">Con của: '+escapeHtml(r.pname)+' <span class="mono">(04 T)</span></p>';
       else h+='<p class="parent-line gp-warn-t">Chưa xác định được cha</p>';
-      if (r.me && par){ var mv=vosOf(par)[r.me-1]; if (mv) h+='<p class="meta"><b>Mẹ:</b> '+escapeHtml(mv.ten)+' (vợ '+r.me+')</p>'; }
+      if (r.me && par){ var pv=vosOf(par), mv=pv[r.me-1]; if (mv) h+='<p class="meta"><b>Mẹ:</b> '+escapeHtml(mv.ten)+(pv.length>1?' (vợ '+r.me+')':'')+'</p>'; }
       vos.forEach(function(v,i){ h+='<p class="meta"><b>'+(vos.length>1?'Vợ '+(i+1):'Vợ')+':</b> '+escapeHtml(v.ten)+'</p>'; });
       if (r.gio) h+='<p class="meta"><b>Giỗ:</b> '+escapeHtml(r.gio)+' âm lịch</p>';
       h+=infoHtml(r)+kidsLine(r);
@@ -961,7 +971,7 @@
       var n=r._k.length;
       return '<div class="gp-row" data-id="'+r.id+'"><div class="gp-row-head">'+
         (n?'<button type="button" class="gp-tog" onclick="GP.kids(\''+b+'\',\''+r.id+'\',this)" aria-label="Mở con">▸</button>':'<span class="gp-tog gp-leaf">·</span>')+
-        '<button type="button" class="gp-nm" onclick="GP.detail(\''+b+'\',\''+r.id+'\',this)">'+(r.ls?'<span class="ls-star">★</span> Liệt sĩ ':'')+nm(r)+'</button>'+
+        '<button type="button" class="gp-nm" onclick="GP.detail(\''+b+'\',\''+r.id+'\',this)">'+(r.ls?'<span class="ls-star">★</span> Liệt sĩ '+nm(r):nmH(r))+'</button>'+
         '<span class="ma-so mono">'+fmtMa(r.ma)+'</span>'+(n?'<span class="gp-n">'+n+' con</span>':'')+(r.flags&&r.flags.length?'<span class="gp-n gp-warn-t">⚠</span>':'')+
         '</div><div class="gp-detail" hidden></div><div class="gp-kids" hidden></div></div>';
     }
@@ -1049,7 +1059,7 @@
       });
       var h='<p class="gp-rescount">'+res.length+' người khớp'+(res.length>80?' — hiện 80 người đầu, gõ thêm để lọc':'')+'</p>';
       h+=res.slice(0,80).map(function(x){ var r=x[1];
-        return '<button type="button" class="gp-res" onclick="GP.reveal(\''+x[0]+'\',\''+r.id+'\')"><b>'+nm(r)+'</b> <span class="mono">'+fmtMa(r.ma)+'</span><br><span>Đời '+r._g+' · '+(x[0]==='G'?'Chi Giáp':'Chi Ất')+(r._par?' · con của '+nm(r._par):' · chưa rõ cha')+(x[2]?' · <b>'+escapeHtml(x[2])+'</b>':'')+'</span></button>';
+        return '<button type="button" class="gp-res" onclick="GP.reveal(\''+x[0]+'\',\''+r.id+'\')"><b>'+(r.ls?'Liệt sĩ '+nm(r):nmH(r))+'</b> <span class="mono">'+fmtMa(r.ma)+'</span><br><span>Đời '+r._g+' · '+(x[0]==='G'?'Chi Giáp':'Chi Ất')+(r._par?' · con của '+nm(r._par):' · chưa rõ cha')+(x[2]?' · <b>'+escapeHtml(x[2])+'</b>':'')+'</span></button>';
       }).join('');
       box.innerHTML=h; box.hidden=false; return res.length;
     }
@@ -1282,7 +1292,7 @@
     }
     function rec(b, id){ return S[b] ? S[b].byId[id] : null; }
     function all(){ var o=[]; ['G','A'].forEach(function(b){ if (S[b]) o=o.concat(S[b].order, S[b].fOrder); }); return o; }
-    return {addKid:addKid, kidDup:kidDup, addKidSave:addKidSave, goiOf:goiOf, paintAll:function(){ paintPending(); flush('G'); flush('A'); }, edClose:edClose, splitYears:splitYears, render:render, propose:propose, proposeSend:proposeSend, applyChanges:applyChanges, rec:rec, curVal:curVal, FIELDS:FIELDS, paintPending:paintPending, kids:kids, detail:detail, more:more, reveal:reveal, search:search, edit:edit, save:save, del:del,
+    return {honor:honor, addKid:addKid, kidDup:kidDup, addKidSave:addKidSave, goiOf:goiOf, paintAll:function(){ paintPending(); flush('G'); flush('A'); }, edClose:edClose, splitYears:splitYears, render:render, propose:propose, proposeSend:proposeSend, applyChanges:applyChanges, rec:rec, curVal:curVal, FIELDS:FIELDS, paintPending:paintPending, kids:kids, detail:detail, more:more, reveal:reveal, search:search, edit:edit, save:save, del:del,
             openAdd:openAdd, closeAdd:closeAdd, relOpts:relOptsPub, add:add, parentChanged:parentChanged, all:all, list:list, setGio:setGio};
   })();
   document.addEventListener('input', function(e){
