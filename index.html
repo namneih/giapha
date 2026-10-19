@@ -779,15 +779,19 @@
       return;
     }
     card.querySelectorAll('.name,.ma-so,.title,.meta,.spouse,.children,.info-desc').forEach(function(el){ el.contentEditable = true; });
-    var data = loadExtra(card.dataset.id) || {};
+    var isThuyTo = card.classList.contains('b-thuyto');
+    var data = isThuyTo ? {} : (loadExtra(card.dataset.id) || {});
     var panel = document.createElement('div');
     panel.className = 'edit-panel';
-    panel.innerHTML =
-      '<p class="form-note" style="margin-top:0">Tên, mã số, chức tước, giỗ/mộ, vợ, con — sửa trực tiếp ngay trên thẻ (viền vàng đứt). Các ô dưới đây là thông tin bổ sung riêng:</p>'+
+    panel.innerHTML = isThuyTo ?
+      ('<p class="form-note" style="margin-top:0">Tên, mã số, chức tước, giỗ/mộ, vợ, con, mô tả — sửa trực tiếp ngay trên thẻ (viền vàng đứt), rồi bấm "Lưu". (4 cụ Thuỷ Tổ không có khung "Công tác/Thành tích riêng" — khung đó chỉ dành cho người đời sau.)</p>'+
+       '<div class="cta-row"><button class="btn small" type="button">Lưu</button> <button class="btn small secondary" type="button">Huỷ</button></div>')
+      :
+      ('<p class="form-note" style="margin-top:0">Tên, mã số, chức tước, giỗ/mộ, vợ, con — sửa trực tiếp ngay trên thẻ (viền vàng đứt). Các ô dưới đây là thông tin bổ sung riêng:</p>'+
       '<label>Công tác / nghề nghiệp</label><textarea class="ef-congtac">'+escapeHtml(data.congtac||'')+'</textarea>'+
       '<label>Thành tích riêng</label><textarea class="ef-thanhtich">'+escapeHtml(data.thanhtich||'')+'</textarea>'+
       '<label>Vợ — chi tiết (tên, quê/địa chỉ, con cụ nào ở khu vực đó, thành tích...)</label><textarea class="ef-vo">'+escapeHtml(data.vo||'')+'</textarea>'+
-      '<div class="cta-row"><button class="btn small" type="button">Lưu tất cả</button> <button class="btn small secondary" type="button">Huỷ</button></div>';
+      '<div class="cta-row"><button class="btn small" type="button">Lưu tất cả</button> <button class="btn small secondary" type="button">Huỷ</button></div>');
     card.appendChild(panel);
     var buttons = panel.querySelectorAll('button');
     buttons[0].addEventListener('click', function(){ saveCardEdit(card, panel); });
@@ -798,12 +802,15 @@
   }
 
   function saveCardEdit(card, panel){
-    var data = {
-      congtac: panel.querySelector('.ef-congtac').value.trim(),
-      thanhtich: panel.querySelector('.ef-thanhtich').value.trim(),
-      vo: panel.querySelector('.ef-vo').value.trim()
-    };
-    saveExtraData(card.dataset.id, data);
+    var efCongtac = panel.querySelector('.ef-congtac');
+    if (efCongtac) {
+      var data = {
+        congtac: efCongtac.value.trim(),
+        thanhtich: panel.querySelector('.ef-thanhtich').value.trim(),
+        vo: panel.querySelector('.ef-vo').value.trim()
+      };
+      saveExtraData(card.dataset.id, data);
+    }
     var fields = card.querySelectorAll('.name,.ma-so,.title,.meta,.spouse,.children,.info-desc');
     var coreArr = Array.from(fields).map(function(el){ return el.innerHTML; });
     try { localStorage.setItem('giapha_core_'+card.dataset.id, JSON.stringify(coreArr)); } catch(e) {}
@@ -827,11 +834,12 @@
     var head = card.querySelector('.card-head');
     if (!head) return; // thẻ không có card-head (ví dụ ô ghi chú) thì bỏ qua, không gắn nút sửa
     var btn = document.createElement('button');
-    btn.className = 'edit-btn'; btn.type = 'button'; btn.title = 'Sửa tên, ngày giỗ/mất, công tác, thành tích, vợ...';
+    btn.className = 'edit-btn'; btn.type = 'button';
+    btn.title = card.classList.contains('b-thuyto') ? 'Sửa tên, ngày giỗ/mất, mô tả, vợ...' : 'Sửa tên, ngày giỗ/mất, công tác, thành tích, vợ...';
     btn.textContent = '✎';
     btn.addEventListener('click', function(){ toggleCardEdit(btn); });
     head.appendChild(btn);
-    renderExtra(card);
+    if (!card.classList.contains('b-thuyto')) renderExtra(card);
   }
 
   // --- Nhiều vợ / con bà nào / nguồn — dùng chung Chi Giáp và Chi Ất ---
