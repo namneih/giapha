@@ -22,9 +22,13 @@
 .gp-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;display:flex;align-items:center;justify-content:center;padding:14px}
 .gp-modal-box{position:relative;background:var(--card-bg);max-width:560px;width:100%;max-height:92vh;overflow:auto;padding:26px 20px 20px;border-radius:6px;box-shadow:0 10px 40px rgba(0,0,0,.35)}
 .gp-modal-x{position:absolute;top:8px;right:8px;background:none;border:0;font-size:22px;line-height:1;cursor:pointer;color:var(--muted);min-height:40px;min-width:40px}
-.review-toolbar{position:sticky;top:0;background:var(--card-bg,#fff);z-index:5;padding:10px 0 12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;border-bottom:1px solid var(--line)}
+.review-toolbar-wrap{position:sticky;top:0;background:var(--card-bg,#fff);z-index:5;border-bottom:1px solid var(--line)}
+.review-toolbar{padding:10px 0 8px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .review-search{flex:1;min-width:180px;font-size:16px;padding:10px 12px;border:1px solid var(--line);border-radius:4px}
 .review-count-live{font-size:14px;color:var(--muted);white-space:nowrap}
+.review-branch-row{display:flex;flex-wrap:wrap;gap:6px;padding:0 0 8px}
+.review-chip{font-size:13.5px;padding:6px 12px;border-radius:14px;border:1px solid var(--line);background:transparent;cursor:pointer;min-height:34px}
+.review-chip.active{background:var(--navy);color:#fff;border-color:var(--navy)}
 .review-card{border:1px solid var(--line);border-radius:6px;padding:14px;margin:12px 0;background:var(--card-bg)}
 .review-card-top{display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap}
 .review-tag{font-size:12.5px;font-weight:600;padding:3px 9px;border-radius:12px}
@@ -800,7 +804,7 @@
     try { localStorage.setItem('giapha_core_'+card.dataset.id, JSON.stringify(coreArr)); } catch(e) {}
     fields.forEach(function(el){ el.contentEditable = false; });
     panel.remove();
-    renderExtra(card);
+    if (!card.classList.contains('b-thuyto')) renderExtra(card);
   }
 
   function applyCore(card){
@@ -1635,19 +1639,39 @@
       '</div></div>';
     return html;
   }
+  window._reviewBranch = '';
+  function reviewSetBranch(b){
+    window._reviewBranch = (window._reviewBranch === b) ? '' : b;
+    var row = document.getElementById('review-branch-row');
+    if (row) row.querySelectorAll('.review-chip').forEach(function(c){
+      c.classList.toggle('active', c.dataset.b === window._reviewBranch);
+    });
+    var si = document.getElementById('review-search');
+    reviewApplyFilter(si ? si.value : '');
+  }
+  window.reviewSetBranch = reviewSetBranch;
   function reviewApplyFilter(q){
     var wrap=document.getElementById('review-list-inner'); if (!wrap) return;
     var all=window._reviewAllItems||[];
+    var br=window._reviewBranch||'';
+    var base = br ? all.filter(function(it){ return it.branch===br; }) : all;
     var qf=reviewFoldVN(q);
-    var items = qf ? all.filter(function(it){
+    var items = qf ? base.filter(function(it){
       return reviewFoldVN(it.name).indexOf(qf)>=0 || reviewFoldVN(it.branch).indexOf(qf)>=0 || reviewFoldVN(it.parent_raw||'').indexOf(qf)>=0;
-    }) : all;
+    }) : base;
     var cEl=document.getElementById('review-count-live');
-    if (cEl) cEl.textContent = qf ? ('Tìm thấy '+items.length+'/'+all.length) : (all.length+' người cần xem');
-    if (!items.length){ wrap.innerHTML='<p class="form-note">Không tìm thấy ai khớp với "'+escapeHtml(q)+'".</p>'; return; }
+    if (cEl) cEl.textContent = (qf || br) ? ('Hiện '+items.length+'/'+all.length) : (all.length+' người cần xem');
+    if (!items.length){ wrap.innerHTML='<p class="form-note">Không tìm thấy ai khớp.</p>'; return; }
     wrap.innerHTML = items.map(reviewCardHtml).join('');
   }
   window.reviewApplyFilter = reviewApplyFilter;
+  function reviewBranchChipsHtml(all){
+    var counts={}, order=[];
+    all.forEach(function(it){ if (!counts[it.branch]){ counts[it.branch]=0; order.push(it.branch); } counts[it.branch]++; });
+    var chips = '<button type="button" class="review-chip" data-b="" onclick="reviewSetBranch(\'\')">Tất cả ('+all.length+')</button>' +
+      order.map(function(b){ return '<button type="button" class="review-chip" data-b="'+escapeHtml(b)+'" onclick="reviewSetBranch(\''+escapeHtml(b)+'\')">'+escapeHtml(b)+' ('+counts[b]+')</button>'; }).join('');
+    return chips;
+  }
   function renderReview(){
     var box=document.getElementById('review-box'); if (!box) return;
     var dataEl=document.getElementById('review-data'); if (!dataEl) return;
@@ -1657,7 +1681,14 @@
     var cEl=document.getElementById('review-count'); if (cEl) cEl.textContent=left.length;
     if (!left.length){ box.innerHTML='<p class="form-note">✅ Đã xác minh/xử lý hết — không còn ai cần rà soát.</p>'; return; }
     window._reviewAllItems = left;
-    box.innerHTML = '<div class="review-toolbar"><input type="text" id="review-search" class="review-search" placeholder="🔍 Gõ tên cần tìm…" oninput="reviewApplyFilter(this.value)"><span id="review-count-live" class="review-count-live"></span></div><div id="review-list-inner"></div>';
+    if (window._reviewBranch && !left.some(function(it){ return it.branch===window._reviewBranch; })) window._reviewBranch='';
+    box.innerHTML = '<div class="review-toolbar-wrap">'+
+      '<div class="review-toolbar"><input type="text" id="review-search" class="review-search" placeholder="🔍 Gõ tên cần tìm…" oninput="reviewApplyFilter(this.value)"><span id="review-count-live" class="review-count-live"></span></div>'+
+      '<div class="review-branch-row" id="review-branch-row">'+reviewBranchChipsHtml(left)+'</div>'+
+      '</div>'+
+      '<div id="review-list-inner"></div>';
+    var row = document.getElementById('review-branch-row');
+    row.querySelectorAll('.review-chip').forEach(function(c){ c.classList.toggle('active', c.dataset.b === window._reviewBranch); });
     reviewApplyFilter('');
   }
   var GAL_KEY='gp2_gallery';
