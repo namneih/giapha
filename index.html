@@ -339,7 +339,6 @@
 <div data-branch-group="thuyto">
 <h2 class="branch-title" data-tx="t91eb7f5814">Nhánh Thuỷ Tổ</h2>
 <p class="branch-desc" data-tx="t280de8d2d9">Bốn đời đầu tiên tại làng Đại Mỗ</p>
-<div class="cta-row" style="margin-bottom:10px"><button type="button" class="btn small secondary" onclick="clearThuyToExtra()">🧹 Xoá "Công tác/Thành tích" cũ bị lặp (nếu có) trên 4 thẻ dưới đây</button></div>
 <div class="tree-scroll">
 <div class="node">
 <div class="card b-thuyto" data-name="phúc tâm">
@@ -754,21 +753,6 @@
       (data.vo ? '<div class="spouse"><div class="label">Vợ — chi tiết</div>'+escapeHtml(data.vo)+'</div>' : '');
   }
 
-  function clearThuyToExtra(){
-    var cards = document.querySelectorAll('.card.b-thuyto');
-    if (!cards.length){ alert('Không tìm thấy thẻ Thuỷ Tổ trên trang.'); return; }
-    var any = false;
-    cards.forEach(function(c){ if (c.dataset.id && localStorage.getItem(extraKey(c.dataset.id))) any = true; });
-    if (!any){ alert('Trên máy đang xem này không có dữ liệu "Công tác/Thành tích" cũ ở 4 thẻ Thuỷ Tổ — không có gì để xoá.'); return; }
-    if (!confirm('Xoá phần "Công tác"/"Thành tích riêng" cũ (không hợp với 4 cụ Thuỷ Tổ) đang hiện lặp lại dưới mô tả? Chỉ xoá trên máy/trình duyệt đang xem, không ảnh hưởng máy khác.')) return;
-    var n=0;
-    cards.forEach(function(c){
-      if (c.dataset.id && localStorage.getItem(extraKey(c.dataset.id))){ localStorage.removeItem(extraKey(c.dataset.id)); n++; }
-      renderExtra(c);
-    });
-    try{ toastTx('Đã xoá dữ liệu cũ trên '+n+' thẻ.'); }catch(e){ alert('Đã xoá dữ liệu cũ trên '+n+' thẻ.'); }
-  }
-  window.clearThuyToExtra = clearThuyToExtra;
 
   function toggleCardEdit(btn){
     var card = btn.closest('.card');
