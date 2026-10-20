@@ -1141,6 +1141,7 @@ nav button{font-size:17px}
     }
     // mở đường tới 1 người (dùng cho tìm kiếm)
     function reveal(b, id){
+      var rb=document.getElementById('gp-results'); if (rb) rb.hidden=true; var si=document.getElementById('searchInput'); if (si) si.blur();
       var chip=document.querySelector('.chip[data-branch="all"]'); if (chip && currentBranch!=='all') chip.click();
       var s=S[b], r=s.byId[id]; if (!r) return;
       if (s.dirty) paint(b); flush(b);
@@ -2817,5 +2818,20 @@ nav button{font-size:17px}
 
 <div id="tx-fab" class="tx-fab"><button type="button" class="tx-edit" onclick="txToggle(true)">✎ Sửa trang này</button><button type="button" class="tx-save" onclick="txSave()">✓ Lưu</button><button type="button" class="tx-cancel" onclick="txCancel()">Huỷ</button></div>
 <button type="button" id="to-top" class="to-top" aria-label="Lên đầu trang" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑<span>Lên đầu</span></button>
+
+<script>
+(function(){
+  function box(){ return document.getElementById('gp-results'); }
+  document.addEventListener('click', function(e){
+    var b=box(); if (!b || b.hidden) return;
+    if (e.target.closest && (e.target.closest('#gp-results') || e.target.closest('.search-bar'))) return;
+    b.hidden=true;
+  });
+  document.addEventListener('DOMContentLoaded', function(){
+    var si=document.getElementById('searchInput'); if (!si) return;
+    si.addEventListener('focus', function(){ var b=box(); if (b && b.innerHTML && si.value.trim().length>=2) b.hidden=false; });
+  });
+})();
+</script>
 </body>
 </html>
