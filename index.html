@@ -1141,7 +1141,7 @@ nav button{font-size:17px}
     }
     // mở đường tới 1 người (dùng cho tìm kiếm)
     function reveal(b, id){
-      var rb=document.getElementById('gp-results'); if (rb) rb.hidden=true; var si=document.getElementById('searchInput'); if (si) si.blur();
+      var rb=document.getElementById('gp-results'); if (rb){ rb._dis=rb._cur; rb.hidden=true; } var si=document.getElementById('searchInput'); if (si) si.blur();
       var chip=document.querySelector('.chip[data-branch="all"]'); if (chip && currentBranch!=='all') chip.click();
       var s=S[b], r=s.byId[id]; if (!r) return;
       if (s.dirty) paint(b); flush(b);
@@ -1179,7 +1179,7 @@ nav button{font-size:17px}
       h+=res.slice(0,80).map(function(x){ var r=x[1];
         return '<button type="button" class="gp-res" onclick="GP.reveal(\''+x[0]+'\',\''+r.id+'\')"><b>'+(r.ls?'Liệt sĩ '+nm(r):nmH(r))+'</b> <span class="mono">'+fmtMa(r.ma)+'</span><br><span>Đời '+r._g+' · '+(x[0]==='G'?'Chi Giáp':'Chi Ất')+(r._par?' · con của '+nm(r._par):' · chưa rõ cha')+(x[2]?' · <b>'+escapeHtml(x[2])+'</b>':'')+'</span></button>';
       }).join('');
-      box.innerHTML=h; box.hidden=false; return res.length;
+      box.innerHTML=h; box._cur=branch+'|'+q; box.hidden=(box._dis===box._cur); return res.length;
     }
     // ---- sửa / thêm / xoá ----
     function dl(b){
@@ -2825,11 +2825,11 @@ nav button{font-size:17px}
   document.addEventListener('click', function(e){
     var b=box(); if (!b || b.hidden) return;
     if (e.target.closest && (e.target.closest('#gp-results') || e.target.closest('.search-bar'))) return;
-    b.hidden=true;
+    b._dis=b._cur; b.hidden=true;
   });
   document.addEventListener('DOMContentLoaded', function(){
     var si=document.getElementById('searchInput'); if (!si) return;
-    si.addEventListener('focus', function(){ var b=box(); if (b && b.innerHTML && si.value.trim().length>=2) b.hidden=false; });
+    si.addEventListener('focus', function(){ var b=box(); b._dis=null; if (b && b.innerHTML && si.value.trim().length>=2) b.hidden=false; });
   });
 })();
 </script>
