@@ -700,7 +700,7 @@ nav button{font-size:17px}
 <h3 class="gio-month">Phân quyền</h3>
 <div id="adm-roles"></div>
 <div class="form-box">
-<label>Gmail được cấp quyền</label><input id="adm-email" placeholder="vidu@gmail.com" type="email"/>
+<label>Số điện thoại của cụ (hoặc Gmail)</label><input id="adm-email" placeholder="0912345678 hoặc vidu@gmail.com" type="text"/><div id="adm-phbox"><label>Họ tên cụ (hiện trên trang khi cụ đăng bài)</label><input id="adm-name" placeholder="Ví dụ: Cụ Nguyễn Quý Thưởng" type="text"/><label>Mật khẩu (ít nhất 6 ký tự) — nhập để tạo tài khoản mới hoặc cấp lại mật khẩu</label><input id="adm-pw" placeholder="Ví dụ: giapha2026" type="text" autocomplete="off"/></div>
 <label>Quyền</label><select id="adm-role" onchange="admScopeUI()"><option value="editor">Biên tập — sửa theo phạm vi được giao</option><option value="admin">Quản trị — sửa, duyệt góp ý, cấp quyền</option></select>
 <div id="adm-scopebox">
 <label>Phạm vi được sửa (chỉ áp dụng cho Biên tập)</label>
@@ -1581,7 +1581,7 @@ nav button{font-size:17px}
       if (fdone.length){
         var drop={}; fdone.forEach(function(x){ drop[x.dataset.i]=1; });
         ch.flags=(r.flags||[]).filter(function(f,i){ return !drop[i]; });
-        var d=new Date(), who=(window.ONL&&ONL.user)?ONL.user.email.split('@')[0]:'';
+        var d=new Date(), who=(window.ONL&&ONL.user)?userNick():'';
         ch.chk=d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear()+(who?' · '+who:'');
       }
       var pin=panel.querySelector('.e-parent'), posIn=panel.querySelector('.e-pos');
@@ -1717,7 +1717,7 @@ nav button{font-size:17px}
       var id='u'+Date.now().toString(36), pos=parseInt(v('.k-pos'),10)||null, ns=v('.k-ns'), nmv=v('.k-nm');
       var rec={ id:id, pid:pid, o:par._k.length+1, name:name, ns:ns, nm:nmv, years:joinYears(ns,nmv), gio:v('.k-gio'),
         vos:parseVoInput(v('.k-vo')), me:parseInt(v('.k-me'),10)||'', nu:p.querySelector('.k-nu').checked?1:0,
-        info:v('.k-info'), src:'Bổ sung trên trang'+(window.ONL&&ONL.user?' ('+ONL.user.email.split('@')[0]+')':''), flags:[] };
+        info:v('.k-info'), src:'Bổ sung trên trang'+(window.ONL&&ONL.user?' ('+userNick()+')':''), flags:[] };
       s.ov.add.push(rec); if (pos) placeAt(b, pid, id, pos);
       saveOv(b, s.ov); edClose(); render(b); reveal(b, id);
       if (!(window.ONL && ONL.on)) bigToast('✓ Đã thêm '+name);
@@ -2380,7 +2380,7 @@ nav button{font-size:17px}
     var t=document.getElementById('nw-t').value.trim(), b=document.getElementById('nw-b').value.trim();
     if (!t){ alert('Xin nhập tiêu đề.'); return; }
     var d=nwLoad(), p=id? d.posts.filter(function(x){ return x.id===id; })[0] : null;
-    if (!p){ p={id:'n'+Date.now().toString(36), ts:Date.now(), author:(window.ONL&&ONL.user)?ONL.user.email.split('@')[0]:''}; d.posts.push(p); }
+    if (!p){ p={id:'n'+Date.now().toString(36), ts:Date.now(), author:(window.ONL&&ONL.user)?userNick():''}; d.posts.push(p); }
     p.title=t; p.body=b; p.date=document.getElementById('nw-d').value; p.cat=document.getElementById('nw-c').value; p.pin=document.getElementById('nw-p').checked;
     var keep=nwImgs(p);
     document.querySelectorAll('#nw-old .nw-rm').forEach(function(el){ keep=keep.filter(function(x){ return x!==el.dataset.id; }); nwImgSet(el.dataset.id,''); });
@@ -2828,22 +2828,76 @@ nav button{font-size:17px}
     if (tag) tag.hidden=!(ONL.on && GP_TEST);
     if (flink) flink.hidden=!ONL.on || !!ONL.user;
     if (mini){ mini.hidden=!ONL.on || !ONL.user; if (ONL.user){ mini.textContent='👤 '+(ONL.roleChecking && !ONL.role?'Đang kiểm tra…':ONL.role==='admin'?'Quản trị':ONL.role==='editor'?'Biên tập':'Đã đăng nhập'); } }
-    var pop=document.getElementById('auth-pop'); if (pop && ONL.user){ pop.querySelector('.ap-mail').textContent=ONL.user.email; pop.querySelector('.ap-role').textContent=(ONL.roleChecking && !ONL.role ? 'Đang kiểm tra quyền… (mạng chậm)' : ONL.role==='admin'?'Quản trị':ONL.role==='editor'?'Biên tập — '+scopeText(ONL.scope):'Chưa được cấp quyền sửa (vẫn gửi góp ý được)')+(ONL.roleChecking && ONL.role?' · đang xác nhận lại…':''); }
+    var pop=document.getElementById('auth-pop'); if (pop && ONL.user){ pop.querySelector('.ap-mail').textContent=userLabel(ONL.user); pop.querySelector('.ap-role').textContent=(ONL.roleChecking && !ONL.role ? 'Đang kiểm tra quyền… (mạng chậm)' : ONL.role==='admin'?'Quản trị':ONL.role==='editor'?'Biên tập — '+scopeText(ONL.scope):'Chưa được cấp quyền sửa (vẫn gửi góp ý được)')+(ONL.roleChecking && ONL.role?' · đang xác nhận lại…':''); }
     var bar=document.getElementById('auth-bar'); if (!bar) return; bar.hidden=true; return;
     bar.hidden=!ONL.on; bar.classList.toggle('auth-test', GP_TEST);
     var u=ONL.user, t=document.getElementById('auth-text'), b=document.getElementById('auth-btn');
     if (GP_TEST) t.dataset.test='1';
-    if (!u){ t.textContent='Đang xem. Muốn chỉnh sửa, xin đăng nhập bằng Gmail đã được cấp quyền.'; b.textContent='Đăng nhập'; }
-    else { t.textContent=u.email+' — '+(ONL.role==='admin'?'Quản trị':ONL.role==='editor'?'Biên tập ('+scopeText(ONL.scope)+')':'Chưa được cấp quyền sửa (vẫn gửi góp ý được)'); b.textContent='Đăng xuất'; }
+    if (!u){ t.textContent='Đang xem. Muốn chỉnh sửa, xin đăng nhập (số điện thoại + mật khẩu, hoặc Gmail) đã được cấp quyền.'; b.textContent='Đăng nhập'; }
+    else { t.textContent=userLabel(u)+' — '+(ONL.role==='admin'?'Quản trị':ONL.role==='editor'?'Biên tập ('+scopeText(ONL.scope)+')':'Chưa được cấp quyền sửa (vẫn gửi góp ý được)'); b.textContent='Đăng xuất'; }
   }
-  function authClick(){
+  // ===== Đăng nhập bằng số điện thoại + mật khẩu (tài khoản do quản trị tạo) =====
+  var PH_DOMAIN='sdt.giapha.vn';
+  function phNorm(s){ s=String(s||'').replace(/[\s.\-()]/g,''); if (/^\+84\d{9}$/.test(s)) s='0'+s.slice(3); else if (/^84\d{9}$/.test(s)) s='0'+s.slice(2); return s; }
+  function phOk(s){ return /^0\d{9,10}$/.test(s); }
+  function phEmail(ph,k){ return ph+(k>1?'-'+k:'')+'@'+PH_DOMAIN; }
+  function isPhEmail(e){ return /@sdt\.giapha\.vn$/i.test(e||''); }
+  function phOf(e){ return String(e||'').split('@')[0].split('-')[0]; }
+  window.userLabel=function(u){ if(!u) return ''; if (u.displayName) return u.displayName+(isPhEmail(u.email)?' (SĐT '+phOf(u.email)+')':''); return isPhEmail(u.email)?'SĐT '+phOf(u.email):u.email; };
+  window.userNick=function(){ var u=window.ONL&&ONL.user; if(!u) return ''; if (u.displayName) return u.displayName; return isPhEmail(u.email)?'Biên tập viên':u.email.split('@')[0]; };
+  function loginMsg(s){ var e=document.getElementById('lg-msg'); if (e) e.textContent=s||''; }
+  function loginClose(){ var m=document.getElementById('lg-modal'); if (m) m.remove(); }
+  function loginOpen(){
+    if (document.getElementById('lg-modal')) return;
+    var m=document.createElement('div'); m.id='lg-modal';
+    m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+    m.innerHTML='<div style="background:#fffdf6;border-radius:14px;max-width:420px;width:100%;padding:22px 20px;box-shadow:0 10px 40px rgba(0,0,0,.4);font-size:18px">'+
+      '<h3 style="margin:0 0 12px;font-size:22px">Đăng nhập</h3>'+
+      '<label style="display:block;margin:8px 0 4px;font-weight:600">Số điện thoại</label>'+
+      '<input id="lg-ph" type="tel" inputmode="tel" autocomplete="username" placeholder="Ví dụ: 0912345678" style="width:100%;box-sizing:border-box;font-size:22px;padding:12px;border:2px solid #b9a77a;border-radius:10px">'+
+      '<label style="display:block;margin:12px 0 4px;font-weight:600">Mật khẩu</label>'+
+      '<input id="lg-pw" type="password" autocomplete="current-password" style="width:100%;box-sizing:border-box;font-size:22px;padding:12px;border:2px solid #b9a77a;border-radius:10px">'+
+      '<div id="lg-msg" style="color:#b3261e;min-height:24px;margin:8px 0;font-size:16px"></div>'+
+      '<button id="lg-go" type="button" class="btn" style="width:100%;font-size:21px;padding:14px">Đăng nhập</button>'+
+      '<div style="text-align:center;margin:14px 0 6px;color:#777;font-size:15px">— hoặc —</div>'+
+      '<button id="lg-gg" type="button" class="btn secondary" style="width:100%;font-size:16px;padding:10px">Đăng nhập bằng Gmail (dành cho quản trị)</button>'+
+      '<button id="lg-x" type="button" style="display:block;margin:12px auto 0;background:none;border:0;color:#555;text-decoration:underline;font-size:16px;cursor:pointer">Đóng</button></div>';
+    document.body.appendChild(m);
+    document.getElementById('lg-x').onclick=loginClose;
+    document.getElementById('lg-gg').onclick=function(){ loginClose(); googleLogin(); };
+    document.getElementById('lg-go').onclick=phoneLogin;
+    document.getElementById('lg-pw').addEventListener('keydown',function(e){ if (e.key==='Enter') phoneLogin(); });
+    setTimeout(function(){ var i=document.getElementById('lg-ph'); if (i) i.focus(); },50);
+  }
+  function phoneLogin(){
+    var ph=phNorm(document.getElementById('lg-ph').value), pw=document.getElementById('lg-pw').value;
+    if (!phOk(ph)){ loginMsg('Xin nhập đúng số điện thoại (10 hoặc 11 số).'); return; }
+    if (!pw){ loginMsg('Xin nhập mật khẩu.'); return; }
+    var a=firebase.auth(), go=document.getElementById('lg-go'); go.disabled=true; loginMsg('Đang đăng nhập…');
+    (function tryK(k){
+      a.signInWithEmailAndPassword(phEmail(ph,k),pw).then(function(){ loginClose(); toast('Đã đăng nhập.'); })
+      .catch(function(e){
+        var c=(e&&e.code)||'';
+        if (/user-not-found|wrong-password|invalid-credential|invalid-login/.test(c)){ if (k<8) return tryK(k+1); go.disabled=false; loginMsg('Sai số điện thoại hoặc mật khẩu. Nếu quên mật khẩu, xin nhờ quản trị cấp lại.'); return; }
+        go.disabled=false;
+        if (/operation-not-allowed/.test(c)) loginMsg('Trang chưa bật đăng nhập bằng mật khẩu. Xin báo quản trị (Firebase → Authentication → Email/Password).');
+        else if (/too-many/.test(c)) loginMsg('Thử sai quá nhiều lần. Xin đợi vài phút rồi thử lại.');
+        else if (/network/.test(c)) loginMsg('Mất mạng. Xin kiểm tra kết nối rồi thử lại.');
+        else loginMsg('Không đăng nhập được: '+(e.message||c));
+      });
+    })(1);
+  }
+  function googleLogin(){
     var a=firebase.auth();
-    if (ONL.user){ a.signOut(); return; }
     var p=new firebase.auth.GoogleAuthProvider(); p.setCustomParameters({prompt:'select_account'});
     a.signInWithPopup(p).catch(function(e){
       if (e && /popup|operation-not-supported/.test(e.code||'')) a.signInWithRedirect(p);
       else alert('Không đăng nhập được: '+(e.message||e)+'\nNếu đang mở trong Zalo/Facebook, xin bấm "Mở bằng trình duyệt" (Chrome/Safari) rồi đăng nhập lại.');
     });
+  }
+  function authClick(){
+    if (ONL.user){ firebase.auth().signOut(); return; }
+    loginOpen();
   }
   // --- gộp phần sửa của mình vào bản chung, không đè phần người khác vừa sửa ---
   function mergeOv(base, mine, cur){
@@ -2947,8 +3001,8 @@ nav button{font-size:17px}
     });
     db.collection('roles').get().then(function(q){
       var h='<div class="role-row role-own"><b>'+OWNER_EMAIL+'</b><span>Quản trị gốc</span></div>'+q.docs.map(function(d){ var x=d.data();
-        return '<div class="role-row"><b>'+escapeHtml(d.id)+'</b><span>'+(x.role==='admin'?'Quản trị':'Biên tập — '+escapeHtml(scopeText(x.scope)))+(x.note?' · '+escapeHtml(x.note):'')+'</span>'+
-          '<button class="gio-btn" title="Bỏ quyền" onclick="adminRoleDel(\''+escapeHtml(d.id)+'\')">✕</button></div>'; }).join('');
+        var isP=isPhEmail(d.id); return '<div class="role-row"><b>'+escapeHtml(isP?((x.name||'')+' · SĐT '+phOf(d.id)):d.id)+'</b><span>'+(x.role==='admin'?'Quản trị':'Biên tập — '+escapeHtml(scopeText(x.scope)))+(x.note?' · '+escapeHtml(x.note):'')+'</span>'+
+          (isP?'<button class="gio-btn" title="Cấp lại mật khẩu" onclick="adminReset(\''+escapeHtml(d.id)+'\',\''+escapeHtml((x.name||'').replace(/\x27/g,''))+'\')">🔑</button>':'')+'<button class="gio-btn" title="Bỏ quyền" onclick="adminRoleDel(\''+escapeHtml(d.id)+'\')">✕</button></div>'; }).join('');
       document.getElementById('adm-roles').innerHTML=h;
     });
     db.collection('history').orderBy('ts','desc').limit(8).get().then(function(q){
@@ -3012,14 +3066,42 @@ nav button{font-size:17px}
   }
   function adminRoleAdd(){
     if (GP_TEST){ alert('Bản chạy thử: không cấp quyền thật.'); return; }
-    var em=document.getElementById('adm-email').value.trim().toLowerCase(), role=document.getElementById('adm-role').value, note=document.getElementById('adm-scope').value.trim();
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ alert('Xin nhập đúng địa chỉ Gmail.'); return; }
+    var raw=document.getElementById('adm-email').value.trim(), role=document.getElementById('adm-role').value, note=document.getElementById('adm-scope').value.trim();
     var t=document.getElementById('adm-stype').value, scope={type:t};
     if (role==='editor' && t==='nganh'){ if (!ADM_ROOTS.length){ alert('Xin thêm ít nhất một ngành (chọn cụ tổ của ngành).'); return; } scope.roots=ADM_ROOTS.slice(); }
-    ONL.db.collection('roles').doc(em).set({role:role, scope:role==='admin'?{type:'all'}:scope, note:note, by:ONL.user.email, ts:firebase.firestore.FieldValue.serverTimestamp()})
+    var base={role:role, scope:role==='admin'?{type:'all'}:scope, note:note, by:ONL.user.email, ts:firebase.firestore.FieldValue.serverTimestamp()};
+    var ph=phNorm(raw);
+    if (!/@/.test(raw) && phOk(ph)){
+      var name=document.getElementById('adm-name').value.trim(), pw=document.getElementById('adm-pw').value;
+      if (!pw || pw.length<6){ alert('Xin nhập mật khẩu (ít nhất 6 ký tự) cho cụ.'); return; }
+      if (!name){ alert('Xin nhập họ tên cụ.'); return; }
+      var app=firebase.apps.filter(function(x){ return x.name==='sec'; })[0] || firebase.initializeApp(firebase.app().options,'sec');
+      var sa=app.auth();
+      (function mk(k){
+        sa.createUserWithEmailAndPassword(phEmail(ph,k),pw).then(function(cr){
+          return cr.user.updateProfile({displayName:name}).catch(function(){}).then(function(){ return sa.signOut(); }).then(function(){
+            var jobs=[ONL.db.collection('roles').doc(phEmail(ph,k)).set(Object.assign({name:name,phone:ph},base))];
+            for (var j=1;j<k;j++) jobs.push(ONL.db.collection('roles').doc(phEmail(ph,j)).delete());   // tài khoản cũ (mật khẩu cũ) mất quyền
+            return Promise.all(jobs);
+          });
+        }).then(function(){
+          ['adm-email','adm-scope','adm-name','adm-pw'].forEach(function(i){ document.getElementById(i).value=''; }); ADM_ROOTS=[]; admChips();
+          toast('Đã tạo tài khoản cho '+name+'. Cụ đăng nhập bằng số '+ph+' và mật khẩu vừa đặt.'); adminLoad();
+        }).catch(function(e){
+          if (e && e.code==='auth/email-already-in-use' && k<8) return mk(k+1);
+          if (e && e.code==='auth/operation-not-allowed') alert('Chưa bật đăng nhập bằng mật khẩu. Vào Firebase → Authentication → Sign-in method → bật "Email/Password".');
+          else alert('Không tạo được: '+(e.message||e));
+        });
+      })(1);
+      return;
+    }
+    var em=raw.toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ alert('Xin nhập đúng số điện thoại (10 số) hoặc địa chỉ Gmail.'); return; }
+    ONL.db.collection('roles').doc(em).set(base)
       .then(function(){ document.getElementById('adm-email').value=''; document.getElementById('adm-scope').value=''; ADM_ROOTS=[]; admChips(); toast('Đã cấp quyền cho '+em); adminLoad(); })
       .catch(function(e){ alert('Không cấp được: '+e.message); });
   }
+  function adminReset(id,name){ var ph=phOf(id); document.getElementById('adm-email').value=ph; document.getElementById('adm-name').value=name||''; var p=document.getElementById('adm-pw'); p.value=''; p.focus(); p.scrollIntoView({block:'center'}); toast('Nhập mật khẩu mới rồi bấm nút cấp quyền để cấp lại cho '+(name||ph)+'.'); }
   function adminRoleDel(em){
     if (GP_TEST){ alert('Bản chạy thử: không thay đổi dữ liệu thật.'); return; } if (!confirm('Bỏ quyền của '+em+'?')) return; ONL.db.collection('roles').doc(em).delete().then(adminLoad); }
   function adminUploadLocal(){
