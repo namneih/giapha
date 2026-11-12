@@ -4,6 +4,44 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Gia Phả Họ Nguyễn Quý — Đại Mỗ</title>
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<style>html.kv-wait body>*{visibility:hidden}html.kv-wait body{background:#1C2B45}html.kv-wait::before{content:"Đang tải gia phả…";position:fixed;top:42%;left:0;right:0;text-align:center;font:600 22px/1.4 Georgia,serif;color:#F1E6CC;z-index:99999;animation:kvp 1.2s ease-in-out infinite}@keyframes kvp{50%{opacity:.4}}html.kv-wait{background:#1C2B45}.tk-md{display:none;margin-left:6px;padding:2px 10px;font-size:14px}body.gp-on:not(.gp-ro) .tk-md{display:inline-block}
+</style>
+<script>
+/* MỘT BẢN DUY NHẤT: ngay khi mở trang, lấy dữ liệu mới nhất từ máy chủ bằng 1 yêu cầu nhẹ (không đợi thư viện Firebase);
+   trang chỉ hiện khi đã có dữ liệu mới => không bao giờ thấy bản cũ. */
+(function(){
+  var d=document.documentElement, P='giapha-nguyenquy', K='AIzaSyDYbS5UyYgAjiQygSf0n8ecgK-jD8KI6h8';
+  var B='https://firestore.googleapis.com/v1/projects/'+P+'/databases/(default)/documents';
+  var IMGS=['gp2_img_banner','gp2_img_book','gp2_img_gate','gp2_img_tree','gp2_img_sodo'];
+  var KV=window.KV={};
+  KV.release=function(ok){ if (ok){ try{ localStorage.setItem('gp_last_sync', String(Date.now())); }catch(e){} } d.classList.remove('kv-wait'); try{ if (window.imgApply) imgApply(); }catch(e){} };
+  if (location.protocol==='file:' || typeof fetch!=='function'){ KV.textP=Promise.reject(0); KV.textP.catch(function(){}); KV.imgP=Promise.resolve({}); return; }
+  var fresh=false; try{ fresh=(Date.now()-parseInt(localStorage.getItem('gp_last_sync')||'0',10))<60000; }catch(e){}
+  if (!fresh){ d.classList.add('kv-wait'); setTimeout(function(){ KV.release(false); }, 9000); }
+  function val(doc){ var f=doc&&doc.fields&&doc.fields.v; return f&&typeof f.stringValue==='string' ? f.stringValue : null; }
+  function idOf(doc){ return doc.name.split('/').pop(); }
+  function listAll(tok, acc){ return fetch(B+'/kv?pageSize=300&key='+K+(tok?'&pageToken='+encodeURIComponent(tok):'')).then(function(r){ if(!r.ok) throw r.status; return r.json(); }).then(function(j){ acc=acc.concat(j.documents||[]); return j.nextPageToken ? listAll(j.nextPageToken, acc) : acc; }); }
+  function viaQuery(){
+    var refs=IMGS.map(function(k){ return {referenceValue:'projects/'+P+'/databases/(default)/documents/kv/'+k}; });
+    return fetch(B+':runQuery?key='+K,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({structuredQuery:{from:[{collectionId:'kv'}],where:{fieldFilter:{field:{fieldPath:'__name__'},op:'NOT_IN',value:{arrayValue:{values:refs}}}}}})})
+      .then(function(r){ if(!r.ok) throw r.status; return r.json(); }).then(function(a){ return a.filter(function(x){ return x.document; }).map(function(x){ return x.document; }); });
+  }
+  KV.textP=viaQuery().catch(function(){ return listAll('',[]); }).then(function(docs){
+    return docs.map(function(x){ return {id:idOf(x), v:val(x)}; }).filter(function(x){ return IMGS.indexOf(x.id)<0 && x.v!==null; });
+  });
+  KV.imgs={};
+  KV.imgP=Promise.all(IMGS.slice(0,4).map(function(k){
+    return fetch(B+'/kv/'+k+'?key='+K).then(function(r){ if (r.status===404) return {k:k,v:''}; if(!r.ok) throw r.status; return r.json().then(function(j){ return {k:k,v:val(j)||''}; }); }).catch(function(){ return {k:k,v:null}; });
+  })).then(function(a){ a.forEach(function(x){ KV.imgs[x.k]=x.v; }); return KV.imgs; });
+  KV.imgs.__p=0;
+  /* tải sớm thư viện Firebase (chỉ dùng cho đăng nhập / chỉnh sửa) */
+  var V='https://www.gstatic.com/firebasejs/10.12.2/';
+  function ld(n){ return new Promise(function(ok,no){ var e=document.createElement('script'); e.src=V+n; e.onload=ok; e.onerror=no; document.head.appendChild(e); }); }
+  window.__fbP=ld('firebase-app-compat.js').then(function(){ return Promise.all([ld('firebase-auth-compat.js'), ld('firebase-firestore-compat.js')]); });
+})();
+</script>
 <meta name="theme-color" content="#1C2B45">
 <meta name="description" content="Gia phả họ Nguyễn Quý, làng Đại Mỗ — hơn 500 năm: danh mục các đời Chi Giáp, Chi Ất, sơ đồ tông phả, ngày giỗ, tư liệu lịch sử.">
 <meta property="og:type" content="website">
@@ -103,7 +141,7 @@ nav button{font-size:17px}
 </g></svg>
 </div>
 <header class="site-banner">
-<div class="img-ctl"><label>🖼 Đổi ảnh<input accept="image/*" hidden="" onchange="imgChange('banner',this)" type="file"/></label></div><img alt="Gia Phả Dòng Họ Nguyễn Quý" class="banner-img" data-slot="banner" height="941" src="anh-banner.jpg" width="1672"/>
+<div class="img-ctl"><label>🖼 Đổi ảnh<input accept="image/*" hidden="" onchange="imgChange('banner',this)" type="file"/></label></div><img alt="Gia Phả Dòng Họ Nguyễn Quý" class="banner-img" data-slot="banner" height="941" data-orig="anh-banner.jpg" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" width="1672"/>
 <div class="site-banner-inner">
 <h1 id="hc-title">Gia Phả Họ Nguyễn Quý — Đại Mỗ</h1>
 <p class="subtitle" id="hc-subtitle">Từ đời thứ nhất đến nay · làng Đại Mỗ</p>
@@ -1952,8 +1990,16 @@ nav button{font-size:17px}
   }
 
   // ---- Trang Thống kê ----
+  // Gia phả ghi người này đã mất (dù chưa có năm mất cụ thể): mô tả có câu "Sinh 1928, mất 2004", "Mất 23-5", "cụ mất ngày…"
+  function tkSelfDead(r){
+    var t=String(r.info||'');
+    return /\bSinh\s+(?:năm\s+)?\d{4}[^.;\n]{0,12}?,?\s*(?:đã\s+)?mất\b/i.test(t)
+        || /(?:^|[.;:\n]\s*)(?:Ghi tay:\s*)?(?:Đã mất|Mất)\s+(?:ngày|năm|\d|vào)/i.test(t)
+        || /(?:^|[.;:\n]\s*)(?:Ghi tay:\s*)?(?:cụ|ông)\s+(?:[A-ZĐ][^\s,.;:]*\s+)?(?:đã\s+)?mất\s+(?:ngày|năm|\d)/i.test(t);
+  }
+  window.tkSelfDead=tkSelfDead;
   function tkPerson(r){
-    var yr=GP.splitYears(r), by=(String(yr[0]).match(/\d{4}/)||[''])[0], dead=!!(r.gio||r.ls||/\d/.test(yr[1])||(yr[1]&&yr[1].trim()));
+    var yr=GP.splitYears(r), by=(String(yr[0]).match(/\d{4}/)||[''])[0], dead=!!(r.gio||r.ls||/\d/.test(yr[1])||(yr[1]&&yr[1].trim())||tkSelfDead(r));
     by=by?parseInt(by,10):0;
     var Y=new Date().getFullYear();
     return {r:r, st: dead ? 'mat' : (by>=Y-99 ? 'song' : 'ro'), by:by};   // chưa ghi năm mất và dưới 100 tuổi => coi là còn sống
@@ -1962,6 +2008,15 @@ nav button{font-size:17px}
     var mx=Math.max.apply(null, items.map(function(x){ return x[1]; }).concat([1]));
     return items.map(function(x){ return '<div class="tk-bar"><span class="tk-l">'+escapeHtml(x[0])+'</span><span class="tk-t"><i style="width:'+Math.round(x[1]*100/mx)+'%"></i></span><span class="tk-n">'+x[1]+(total?' <small>('+Math.round(x[1]*100/total)+'%)</small>':'')+'</span></div>'; }).join('');
   }
+  function tkMarkDead(b, id){
+    var r=GP.rec(b,id); if (!r) return;
+    var yr=GP.splitYears(r), ns=String(yr[0]||'').trim();
+    if (!confirm('Ghi '+r.name+' (sinh '+(ns||'?')+') là ĐÃ MẤT (chưa rõ năm mất)?\nCụ sẽ rời danh sách còn sống. Sau này có thể bấm ✎ trên thẻ để điền năm mất.')) return;
+    GP.applyChanges(b, id, {years:(ns||'?')+' – ?'});
+    tkRender();
+    if (window.toast) toast('Đã ghi '+r.name+' là đã mất.');
+  }
+  window.tkMarkDead=tkMarkDead;
   function tkRender(){
     var el=document.getElementById('tk-body'); if (!el || !window.GP) return;
     var P=[], nG=0, nA=0, mxG=0;
@@ -1970,14 +2025,14 @@ nav button{font-size:17px}
     var ls=P.filter(function(p){ return p.r.ls; }).length, nu=P.filter(function(p){ return p.r.nu; }).length;
     var tiles=[[P.length,'người trong gia phả'],[nG,'người Chi Giáp'],[nA,'người Chi Ất'],[mxG,'đời được ghi chép'],[song.length,'người còn sống (ước tính)'],[mat.length,'người đã mất'],[ls,'liệt sĩ']];
     var h='<div class="tk-tiles">'+tiles.map(function(t){ return '<div class="tk-tile"><b>'+Number(t[0]).toLocaleString('vi-VN')+'</b><span>'+t[1]+'</span></div>'; }).join('')+'</div>';
-    h+='<p class="tk-note">“Còn sống” = có năm sinh (dưới 100 tuổi), chưa ghi năm mất / ngày giỗ. '+ro.length+' người chưa đủ thông tin năm sinh nên chưa phân loại được. Muốn số liệu đúng hơn: bấm ✎ trên thẻ và điền năm sinh – năm mất.</p>';
+    h+='<p class="tk-note">“Còn sống” = có năm sinh (dưới 100 tuổi) và gia phả không ghi là đã mất (năm mất, ngày giỗ, hoặc mô tả có câu “mất…”). '+ro.length+' người chưa đủ thông tin năm sinh nên chưa phân loại được. Muốn số liệu đúng hơn: bấm ✎ trên thẻ và điền năm sinh – năm mất.</p>';
     h+='<h2 class="tk-h">Còn sống — theo tuổi</h2>';
     var Y=new Date().getFullYear(), u18=0, o18=0;
     song.forEach(function(p){ if (Y-p.by<18) u18++; else o18++; });
     h+=song.length?tkBars([['Dưới 18 tuổi',u18],['Từ 18 tuổi trở lên',o18]], song.length):'<p class="empty-note">Chưa có dữ liệu.</p>';
     var cu=song.filter(function(p){ return Y-p.by>=90; }).sort(function(x,y){ return x.by-y.by; });
     h+='<h2 class="tk-h">🙏 Các cụ từ 90 tuổi trở lên (còn sống)</h2>';
-    if (cu.length) h+='<p class="tk-note">Danh sách tính theo năm sinh và chưa thấy ghi năm mất. <b>Cụ nào đã mất mà gia phả chưa ghi, xin bấm tên → ✎ điền năm mất</b>, cụ sẽ tự rời khỏi danh sách.</p><ol class="tk-list">'+cu.map(function(p){ return '<li><a onclick="showPage(\'danhmuc\');GP.reveal(\''+p.b+'\',\''+p.r.id+'\')"><b>'+escapeHtml(p.r.name)+'</b></a> — sinh '+p.by+' ('+(Y-p.by)+' tuổi) · <span class="mono">'+fmtMa(p.r.ma)+'</span> · '+(p.b==='G'?'Chi Giáp':'Chi Ất')+' · đời '+p.r._g+'</li>'; }).join('')+'</ol>';
+    if (cu.length) h+='<p class="tk-note">Danh sách tính theo năm sinh, đã loại các cụ gia phả ghi là đã mất. <b>Cụ nào đã mất mà gia phả chưa ghi, xin bấm tên → ✎ điền năm mất</b>, cụ sẽ tự rời khỏi danh sách.</p><ol class="tk-list">'+cu.map(function(p){ return '<li><a onclick="showPage(\'danhmuc\');GP.reveal(\''+p.b+'\',\''+p.r.id+'\')"><b>'+escapeHtml(p.r.name)+'</b></a> — sinh '+p.by+' ('+(Y-p.by)+' tuổi) · <span class="mono">'+fmtMa(p.r.ma)+'</span> · '+(p.b==='G'?'Chi Giáp':'Chi Ất')+' · đời '+p.r._g+' <button type="button" class="btn small secondary tk-md" onclick="tkMarkDead(\''+p.b+'\',\''+p.r.id+'\')">Đã mất</button></li>'; }).join('')+'</ol>';
     else h+='<p class="empty-note">Chưa có cụ nào.</p>';
     // gia đình
     var kids=P.filter(function(p){ return p.r._k && p.r._k.length; }), nk=0; kids.forEach(function(p){ nk+=p.r._k.length; });
@@ -2171,6 +2226,7 @@ nav button{font-size:17px}
       var el=document.querySelector('img[data-slot="'+s+'"]'); if (!el) return;
       if (!el.dataset.orig) el.dataset.orig=el.getAttribute('src');
       var v=localStorage.getItem('gp2_img_'+s);
+      if (s==='banner' && !v && document.documentElement.classList.contains('kv-wait')) return;   // đang chờ ảnh mới nhất: chưa tải ảnh gốc cũ
       el.setAttribute('src', v ? v : el.dataset.orig);
       if (s==='banner'){ el.removeAttribute('width'); el.removeAttribute('height'); }
     });
@@ -2980,6 +3036,8 @@ nav button{font-size:17px}
   var pushTimers={};
   function pushKey(k, v){
     if (!ONL.on || !canEdit()) return;
+    if (ONL.boot) return;                       // đang khởi động: các ghi tự động (nâng cấp dữ liệu…) không phải do người dùng sửa
+    if (ONL.base && ONL.base[k]===v) return;    // không có gì thay đổi thì không lưu, không báo "Đã lưu"
     if (GP_TEST){ toast('Bản chạy thử: thay đổi chỉ hiện trên máy này, không lưu lên mạng'); return; }
     if (!ONL.synced){ alert('Trang chưa tải xong dữ liệu mới nhất từ mạng (mạng đang chậm). Thay đổi CHƯA được lưu lên mạng — xin đợi vài giây, tải lại trang rồi sửa lại.'); return; }
     clearTimeout(pushTimers[k]);
@@ -3207,47 +3265,68 @@ nav button{font-size:17px}
   (function startOnline(){
     if (!FIREBASE_CONFIG) return;
     var V='https://www.gstatic.com/firebasejs/10.12.2/';
-    loadScript(V+'firebase-app-compat.js').then(function(){ return Promise.all([loadScript(V+'firebase-auth-compat.js'), loadScript(V+'firebase-firestore-compat.js')]); })
+    var IMGK=['gp2_img_banner','gp2_img_book','gp2_img_gate','gp2_img_tree','gp2_img_sodo'];
+    ONL.rawSet=Storage.prototype.setItem; ONL.boot=true;
+    var done=false;
+    function finish(ok){ if (done) return; done=true; if (window.KV) KV.release(ok); setTimeout(function(){ ONL.boot=false; }, 2500); }
+    function refreshAll(){
+      try{ GP.render('G'); GP.render('A'); }catch(e){}
+      ['loadTrangChu','loadTulieu','txLoad','renderNews','renderGioList','homeStats','xcRender'].forEach(function(f){ try{ if (window[f]) window[f](); }catch(e){} });
+    }
+    function applyKv(docs){   // docs: [{id,v}]
+      var changed=[], seen={};
+      docs.forEach(function(d){ if (IMGK.indexOf(d.id)>=0) return; var v=d.v; ONL.base[d.id]=v; seen[d.id]=1;
+        if (localStorage.getItem(d.id)!==v){ ONL.rawSet.call(localStorage,d.id,v); changed.push(d.id); } });
+      if (docs.length) for (var i=localStorage.length-1;i>=0;i--){ var k=localStorage.key(i); if (isSyncKey(k) && IMGK.indexOf(k)<0 && !seen[k]){ localStorage.removeItem(k); changed.push(k); } }
+      ONL.synced=true; document.body.classList.remove('gp-loading');
+      if (!changed.length) return;
+      var simple=changed.every(function(k){ return /^(gp2_ov_|gp2_xc_|giapha_trangchu|giapha_tulieu|gp2_texts|gp2_news|gp2_gio)/.test(k); });
+      if (simple) refreshAll();
+      else if (sessionStorage.getItem('gp_rl')!==changed.join()){ sessionStorage.setItem('gp_rl',changed.join()); location.reload(); }
+    }
+    function applyImg(k, v){
+      if (k==='gp2_img_sodo' || v===null) return;
+      var slot=k.replace('gp2_img_',''); if (v) ONL.base[k]=v;
+      if ((localStorage.getItem(k)||'')!==v){ if (v) ONL.rawSet.call(localStorage,k,v); else localStorage.removeItem(k); }
+      try{ if (window.imgApply) imgApply(); }catch(e){}
+    }
+    // ---- đường nhanh: 1 yêu cầu REST, không đợi thư viện Firebase ----
+    var restP = window.KV ? KV.textP.then(function(docs){ applyKv(docs); return true; }).catch(function(e){ console.error('REST-APPLY', e && e.message || e); return false; }) : Promise.resolve(false);
+    var restImgP = window.KV ? KV.imgP.then(function(m){ IMGK.slice(0,4).forEach(function(k){ applyImg(k, m[k]); }); return Object.keys(m).some(function(k){ return m[k]===null; })?false:true; }).catch(function(){ return false; }) : Promise.resolve(false);
+    Promise.all([restP, restImgP]).then(function(r){
+      if (!(r[0] && r[1])) return;
+      var bi=document.querySelector('img[data-slot="banner"]');
+      if (bi && !bi.complete){ var t=setTimeout(function(){ finish(true); }, 2500); bi.addEventListener('load', function(){ clearTimeout(t); finish(true); }); bi.addEventListener('error', function(){ clearTimeout(t); finish(true); }); }
+      else finish(true);
+    });
+    (window.__fbP || loadScript(V+'firebase-app-compat.js').then(function(){ return Promise.all([loadScript(V+'firebase-auth-compat.js'), loadScript(V+'firebase-firestore-compat.js')]); }))
     .then(function(){
       firebase.initializeApp(FIREBASE_CONFIG);
       ONL.on=true; ONL.db=firebase.firestore();
-      ONL.rawSet=Storage.prototype.setItem;
+      try{ ONL.db.settings({experimentalAutoDetectLongPolling:true, merge:true}); }catch(e){}
       Storage.prototype.setItem=function(k,v){ ONL.rawSet.call(this,k,v); if (this===localStorage && isSyncKey(k)) pushKey(k,v); };
       setMode(); galOnline(); gopyOnline();
-      // tải bản chung: phần chữ trước (nhẹ, cho phép sửa ngay), ảnh tải sau; không nạp lại cả trang
-      var IMGK=['gp2_img_banner','gp2_img_book','gp2_img_gate','gp2_img_tree','gp2_img_sodo'];
-      function refreshAll(){
-        try{ GP.render('G'); GP.render('A'); }catch(e){}
-        ['loadTrangChu','loadTulieu','txLoad','renderNews','renderGioList','homeStats','xcRender'].forEach(function(f){ try{ if (window[f]) window[f](); }catch(e){} });
-      }
-      function applyKv(docs){
-        var changed=[], seen={};
-        docs.forEach(function(d){ if (IMGK.indexOf(d.id)>=0) return; var v=d.data().v; ONL.base[d.id]=v; seen[d.id]=1;
-          if (localStorage.getItem(d.id)!==v){ ONL.rawSet.call(localStorage,d.id,v); changed.push(d.id); } });
-        if (docs.length) for (var i=localStorage.length-1;i>=0;i--){ var k=localStorage.key(i); if (isSyncKey(k) && IMGK.indexOf(k)<0 && !seen[k]){ localStorage.removeItem(k); changed.push(k); } }
-        ONL.synced=true; document.body.classList.remove('gp-loading');
-        if (!changed.length) return;
-        var simple=changed.every(function(k){ return /^(gp2_ov_|gp2_xc_|giapha_trangchu|giapha_tulieu|gp2_texts|gp2_news|gp2_gio)/.test(k); });
-        if (simple) refreshAll();
-        else if (sessionStorage.getItem('gp_rl')!==changed.join()){ sessionStorage.setItem('gp_rl',changed.join()); location.reload(); }
-      }
-      function loadImgs(){
-        IMGK.forEach(function(k){
-          ONL.db.collection('kv').doc(k).get().then(function(d){
-            if (k==='gp2_img_sodo'){ if (d.exists) ONL.kvOld=true; return; }
-            var slot=k.replace('gp2_img_',''), v=d.exists?d.data().v:'';
-            if (d.exists) ONL.base[k]=v;
-            if ((localStorage.getItem(k)||'')!==v){ if (v) ONL.rawSet.call(localStorage,k,v); else localStorage.removeItem(k); try{ if (window.imgApply) imgApply(slot, v); }catch(e){} }
-          }).catch(function(){});
-        });
-      }
-      (function kvSync(n){
-        var q=null;
-        try{ q=ONL.db.collection('kv').where(firebase.firestore.FieldPath.documentId(),'not-in',IMGK); }catch(e){ q=null; }
-        var run=function(qq, full){ return qq.get().then(function(s){ applyKv(s.docs); if (!full) loadImgs(); else { s.docs.forEach(function(d){ if (d.id==='gp2_img_sodo') ONL.kvOld=true; }); loadImgs(); } }); };
-        (q ? run(q,false).catch(function(){ return run(ONL.db.collection('kv'), true); }) : run(ONL.db.collection('kv'), true))
-          .catch(function(){ if (n<6) setTimeout(function(){ kvSync(n+1); }, 2000*(n+1)); else toast('Không kết nối được máy chủ dữ liệu. Xin kiểm tra mạng rồi tải lại trang.'); });
-      })(0);
+      // dự phòng: nếu đường nhanh lỗi thì dùng thư viện Firebase như trước
+      Promise.all([restP, restImgP]).then(function(r){
+        if (r[0] && r[1]) return;
+        function loadImgs(){
+          return Promise.all(IMGK.map(function(k){
+            return ONL.db.collection('kv').doc(k).get().then(function(d){
+              if (k==='gp2_img_sodo'){ if (d.exists) ONL.kvOld=true; return; }
+              applyImg(k, d.exists?d.data().v:'');
+            }).catch(function(){});
+          }));
+        }
+        var imgP=loadImgs();
+        (function kvSync(n){
+          var q=null;
+          try{ q=ONL.db.collection('kv').where(firebase.firestore.FieldPath.documentId(),'not-in',IMGK); }catch(e){ q=null; }
+          var run=function(qq, full){ return qq.get().then(function(sn){ applyKv(sn.docs.map(function(d){ return {id:d.id, v:d.data().v}; })); if (full) sn.docs.forEach(function(d){ if (d.id==='gp2_img_sodo') ONL.kvOld=true; }); }); };
+          (q ? run(q,false).catch(function(){ return run(ONL.db.collection('kv'), true); }) : run(ONL.db.collection('kv'), true))
+            .then(function(){ return imgP; }).then(function(){ finish(true); })
+            .catch(function(){ if (n<6) setTimeout(function(){ kvSync(n+1); }, 2000*(n+1)); else { finish(false); toast('Không kết nối được máy chủ dữ liệu. Xin kiểm tra mạng rồi tải lại trang.'); } });
+        })(0);
+      });
       firebase.auth().onAuthStateChanged(function(u){
         ONL.user=u; ONL.role='';
         if (!u){ setMode(); return; }
@@ -3269,7 +3348,7 @@ nav button{font-size:17px}
           });
         })(0);
       });
-    }).catch(function(){ console.warn('Không tải được Firebase — chạy chế độ trên máy.'); });
+    }).catch(function(){ Promise.all([restP, restImgP]).then(function(r){ if (!(r[0] && r[1])) finish(false); }); console.warn('Không tải được Firebase — chạy chế độ trên máy.'); });
   })();
 
 
