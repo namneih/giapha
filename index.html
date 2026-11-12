@@ -1364,7 +1364,6 @@ nav button{font-size:17px}
       if (mpar && !mpar.nu){ var pv=vosOf(mpar), mv=r.me ? pv[r.me-1] : (pv.length===1 ? pv[0] : null);   // cha chỉ có một vợ: tự hiểu là mẹ
         if (mv && mv.ten) h+='<p class="meta"><b>Mẹ:</b> '+escapeHtml(mv.ten)+(pv.length>1?' (vợ '+r.me+')':'')+'</p>'; }
       vos.forEach(function(v,i){ h+='<p class="meta"><b>'+(vos.length>1?'Vợ '+(i+1):'Vợ')+':</b> '+escapeHtml(v.ten)+'</p>'; });
-      if (r.kv||r.noio) h+='<p class="meta"><b>Nơi ở:</b> '+escapeHtml(r.noio||({dm:'Đại Mỗ',hn:'Hà Nội',vn:'Trong nước',nn:'Nước ngoài'})[r.kv]||'')+'</p>';
       if (r.gio) h+='<p class="meta"><b>Giỗ:</b> '+escapeHtml(r.gio)+' âm lịch</p>';
       h+=infoHtml(r)+kidsLine(r);
       if (r.flags && r.flags.length) h+='<div class="gp-flag">⚠ Cần đối chiếu: '+r.flags.map(escapeHtml).join('; ')+'</div>';
@@ -1524,8 +1523,6 @@ nav button{font-size:17px}
           '<div class="yr2"><div><label>Năm sinh</label><input type="text" class="e-ns" placeholder="chưa rõ thì để trống" value="'+escapeHtml(yr[0])+'"></div>'+
           '<div><label>Năm mất</label><input type="text" class="e-nm" placeholder="còn sống thì để trống" value="'+escapeHtml(yr[1])+'"></div></div>'+
           '<label>Ngày giỗ (âm lịch, ví dụ 12/5)</label><input type="text" class="e-gio" value="'+escapeHtml(r.gio||'')+'">'+
-          '<label>Nơi ở hiện nay (nếu còn sống)</label><select class="e-kv"><option value="">— chưa ghi —</option>'+['dm','hn','vn','nn'].map(function(k){ return '<option value="'+k+'"'+(r.kv===k?' selected':'')+'>'+({dm:'Đại Mỗ',hn:'Hà Nội (ngoài Đại Mỗ)',vn:'Tỉnh/thành khác trong nước',nn:'Nước ngoài'})[k]+'</option>'; }).join('')+'</select>'+
-          '<input type="text" class="e-noio" placeholder="Ghi cụ thể nếu muốn (ví dụ: Cầu Giấy, Hà Nội / California, Mỹ)" value="'+escapeHtml(r.noio||'')+'">'+
           '<label>Tên thường gọi (ví dụ: ông cả Đại, cụ tư Lực)</label><input type="text" class="e-goi" value="'+escapeHtml(goiOf(r))+'">'+
           '<label>Hiệu, chức tước, nghề nghiệp</label><input type="text" class="e-title" value="'+escapeHtml(r.title||'')+'">'+
         '</div>'+
@@ -1585,7 +1582,7 @@ nav button{font-size:17px}
       var ch={ name:panel.querySelector('.e-name').value.trim()||'Chưa rõ tên', title:panel.querySelector('.e-title').value.trim(),
         ns:panel.querySelector('.e-ns').value.trim(), nm:panel.querySelector('.e-nm').value.trim(),
         years:joinYears(panel.querySelector('.e-ns').value, panel.querySelector('.e-nm').value), ls:panel.querySelector('.e-ls').checked?1:0, goi:panel.querySelector('.e-goi').value.trim(), nu:panel.querySelector('.e-nu').checked?1:0, lsk:panel.querySelector('.e-lsk').value.trim(), vos:w.vos, me:parseInt(panel.querySelector('.p-me').value,10)||'',
-        gio:panel.querySelector('.e-gio').value.trim(), kv:panel.querySelector('.e-kv').value, noio:panel.querySelector('.e-noio').value.trim(), info:panel.querySelector('.e-info').value.trim(), src:panel.querySelector('.p-nguon').value.trim() };
+        gio:panel.querySelector('.e-gio').value.trim(), info:panel.querySelector('.e-info').value.trim(), src:panel.querySelector('.p-nguon').value.trim() };
       r._k.forEach(function(k){ if (k.me){ var nme=w.map[k.me]||''; if (nme!==k.me) setMod(b, k.id, {me:nme}); } });
       var un=panel.querySelector('.e-unstub');
       if (un && un.checked){ ch.stub=0; ch.ph=0; }
@@ -1955,22 +1952,11 @@ nav button{font-size:17px}
   }
 
   // ---- Trang Thống kê ----
-  var TK_KV={dm:'Đại Mỗ',hn:'Hà Nội (ngoài Đại Mỗ)',vn:'Tỉnh/thành khác trong nước',nn:'Nước ngoài'};
-  function tkKvInfer(info){
-    var t=String(info||''), k=t.search(/\n?\s*Vợ\b/); if (k>0) t=t.slice(0,k);
-    var m=t.match(/(?:sống|cư trú|định cư|sinh sống|ở)\s+(?:tại|ở)\s+([A-ZĐ][^,.;()\n]{1,40})/); if (!m) return '';
-    var p=m[1];
-    if (/Đại Mỗ/i.test(p)) return 'dm';
-    if (/Hà Nội|Hà Đông|Cầu Giấy|Thanh Xuân|Mai Dịch|Yên Hòa|Yên Hoà|Quan Hoa|Trung Kính|Hàng |Nam Từ Liêm|Bắc Từ Liêm|Đống Đa|Hoàn Kiếm|Ba Đình|Hai Bà Trưng|Long Biên|Hoàng Mai|Tây Hồ|Gia Cẩm/i.test(p)) return 'hn';
-    if (/Mỹ|Hoa Kỳ|Califo|Pháp|Đức|Nhật|Séc|Thụy Sĩ|Thuỵ Sĩ|Úc|Canada|Hàn Quốc|Nga|Anh Quốc|Singapore|Lào|Campuchia|Thái Lan/i.test(p)) return 'nn';
-    return 'vn';
-  }
   function tkPerson(r){
     var yr=GP.splitYears(r), by=(String(yr[0]).match(/\d{4}/)||[''])[0], dead=!!(r.gio||r.ls||/\d/.test(yr[1])||(yr[1]&&yr[1].trim()));
     by=by?parseInt(by,10):0;
-    var st = dead ? 'mat' : (by>=1935 ? 'song' : 'ro');
-    var kv=r.kv||'', inf=false; if (!kv && st==='song'){ kv=tkKvInfer(r.info); inf=!!kv; }
-    return {r:r, st:st, by:by, kv:kv, inf:inf};
+    var Y=new Date().getFullYear();
+    return {r:r, st: dead ? 'mat' : (by>=Y-99 ? 'song' : 'ro'), by:by};   // chưa ghi năm mất và dưới 100 tuổi => coi là còn sống
   }
   function tkBars(items, total, color){
     var mx=Math.max.apply(null, items.map(function(x){ return x[1]; }).concat([1]));
@@ -1984,18 +1970,15 @@ nav button{font-size:17px}
     var ls=P.filter(function(p){ return p.r.ls; }).length, nu=P.filter(function(p){ return p.r.nu; }).length;
     var tiles=[[P.length,'người trong gia phả'],[nG,'người Chi Giáp'],[nA,'người Chi Ất'],[mxG,'đời được ghi chép'],[song.length,'người còn sống (ước tính)'],[mat.length,'người đã mất'],[ls,'liệt sĩ']];
     var h='<div class="tk-tiles">'+tiles.map(function(t){ return '<div class="tk-tile"><b>'+Number(t[0]).toLocaleString('vi-VN')+'</b><span>'+t[1]+'</span></div>'; }).join('')+'</div>';
-    h+='<p class="tk-note">“Còn sống” = có năm sinh từ 1935 trở lại đây, chưa ghi năm mất / ngày giỗ. '+ro.length+' người chưa đủ thông tin năm sinh nên chưa phân loại được. Muốn số liệu đúng hơn: bấm ✎ trên thẻ và điền năm sinh – năm mất.</p>';
-    h+='<h2 class="tk-h">Còn sống — theo nhóm tuổi</h2>';
-    var Y=new Date().getFullYear(), ag=[['Dưới 18 tuổi',0],['18 – 35 tuổi',0],['36 – 60 tuổi',0],['Trên 60 tuổi',0]];
-    song.forEach(function(p){ var a=Y-p.by; ag[a<18?0:a<=35?1:a<=60?2:3][1]++; });
-    h+=song.length?tkBars(ag, song.length):'<p class="empty-note">Chưa có dữ liệu.</p>';
-    h+='<h2 class="tk-h">Còn sống — nơi ở hiện nay</h2>';
-    var kc={dm:0,hn:0,vn:0,nn:0,none:0}, miss=[];
-    song.forEach(function(p){ if (p.kv && kc[p.kv]!==undefined) kc[p.kv]++; else { kc.none++; miss.push(p); } });
-    var known=song.length-kc.none;
-    h+=tkBars([[TK_KV.dm,kc.dm],[TK_KV.hn,kc.hn],[TK_KV.vn,kc.vn],[TK_KV.nn,kc.nn],['Chưa ghi nơi ở',kc.none]], song.length);
-    h+='<p class="tk-note">Mới ghi được nơi ở của <b>'+known+'/'+song.length+'</b> người còn sống'+(known?' (một phần tự nhận từ mô tả)':'')+'. Để số liệu đầy đủ: mở thẻ từng người, bấm ✎ rồi chọn mục <b>“Nơi ở hiện nay”</b>.</p>';
-    if (miss.length) h+='<details class="gen-stats-box"><summary>Người còn sống chưa ghi nơi ở ('+miss.length+') — bấm tên để mở thẻ</summary><ul class="tk-list">'+miss.slice(0,400).map(function(p){ return '<li><a onclick="showPage(\'danhmuc\');GP.reveal(\''+p.b+'\',\''+p.r.id+'\')">'+escapeHtml(p.r.name)+'</a> <span class="mono">'+fmtMa(p.r.ma)+'</span> · sinh '+p.by+'</li>'; }).join('')+(miss.length>400?'<li>… và '+(miss.length-400)+' người nữa</li>':'')+'</ul></details>';
+    h+='<p class="tk-note">“Còn sống” = có năm sinh (dưới 100 tuổi), chưa ghi năm mất / ngày giỗ. '+ro.length+' người chưa đủ thông tin năm sinh nên chưa phân loại được. Muốn số liệu đúng hơn: bấm ✎ trên thẻ và điền năm sinh – năm mất.</p>';
+    h+='<h2 class="tk-h">Còn sống — theo tuổi</h2>';
+    var Y=new Date().getFullYear(), u18=0, o18=0;
+    song.forEach(function(p){ if (Y-p.by<18) u18++; else o18++; });
+    h+=song.length?tkBars([['Dưới 18 tuổi',u18],['Từ 18 tuổi trở lên',o18]], song.length):'<p class="empty-note">Chưa có dữ liệu.</p>';
+    var cu=song.filter(function(p){ return Y-p.by>=90; }).sort(function(x,y){ return x.by-y.by; });
+    h+='<h2 class="tk-h">🙏 Các cụ từ 90 tuổi trở lên (còn sống)</h2>';
+    if (cu.length) h+='<p class="tk-note">Danh sách tính theo năm sinh và chưa thấy ghi năm mất. <b>Cụ nào đã mất mà gia phả chưa ghi, xin bấm tên → ✎ điền năm mất</b>, cụ sẽ tự rời khỏi danh sách.</p><ol class="tk-list">'+cu.map(function(p){ return '<li><a onclick="showPage(\'danhmuc\');GP.reveal(\''+p.b+'\',\''+p.r.id+'\')"><b>'+escapeHtml(p.r.name)+'</b></a> — sinh '+p.by+' ('+(Y-p.by)+' tuổi) · <span class="mono">'+fmtMa(p.r.ma)+'</span> · '+(p.b==='G'?'Chi Giáp':'Chi Ất')+' · đời '+p.r._g+'</li>'; }).join('')+'</ol>';
+    else h+='<p class="empty-note">Chưa có cụ nào.</p>';
     // gia đình
     var kids=P.filter(function(p){ return p.r._k && p.r._k.length; }), nk=0; kids.forEach(function(p){ nk+=p.r._k.length; });
     var mk=P.reduce(function(m,p){ var n=(p.r._k||[]).length; return n>m[0]?[n,p]:m; },[0,null]);
