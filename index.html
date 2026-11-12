@@ -6,8 +6,7 @@
 <title>Gia Phả Họ Nguyễn Quý — Đại Mỗ</title>
 <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-<style>html.kv-wait body>*{visibility:hidden}html.kv-wait body{background:#1C2B45}html.kv-wait::before{content:"Đang tải gia phả…";position:fixed;top:42%;left:0;right:0;text-align:center;font:600 22px/1.4 Georgia,serif;color:#F1E6CC;z-index:99999;animation:kvp 1.2s ease-in-out infinite}@keyframes kvp{50%{opacity:.4}}html.kv-wait{background:#1C2B45}.tk-md{display:none;margin-left:6px;padding:2px 10px;font-size:14px}body.gp-on:not(.gp-ro) .tk-md{display:inline-block}
-</style>
+<style>html.kv-wait body>*{visibility:hidden}html.kv-wait body{background:#1C2B45}html.kv-wait::before{content:"Đang tải gia phả…";position:fixed;top:42%;left:0;right:0;text-align:center;font:600 22px/1.4 Georgia,serif;color:#F1E6CC;z-index:99999;animation:kvp 1.2s ease-in-out infinite}@keyframes kvp{50%{opacity:.4}}html.kv-wait{background:#1C2B45}</style>
 <script>
 /* MỘT BẢN DUY NHẤT: ngay khi mở trang, lấy dữ liệu mới nhất từ máy chủ bằng 1 yêu cầu nhẹ (không đợi thư viện Firebase);
    trang chỉ hiện khi đã có dữ liệu mới => không bao giờ thấy bản cũ. */
@@ -2008,15 +2007,6 @@ nav button{font-size:17px}
     var mx=Math.max.apply(null, items.map(function(x){ return x[1]; }).concat([1]));
     return items.map(function(x){ return '<div class="tk-bar"><span class="tk-l">'+escapeHtml(x[0])+'</span><span class="tk-t"><i style="width:'+Math.round(x[1]*100/mx)+'%"></i></span><span class="tk-n">'+x[1]+(total?' <small>('+Math.round(x[1]*100/total)+'%)</small>':'')+'</span></div>'; }).join('');
   }
-  function tkMarkDead(b, id){
-    var r=GP.rec(b,id); if (!r) return;
-    var yr=GP.splitYears(r), ns=String(yr[0]||'').trim();
-    if (!confirm('Ghi '+r.name+' (sinh '+(ns||'?')+') là ĐÃ MẤT (chưa rõ năm mất)?\nCụ sẽ rời danh sách còn sống. Sau này có thể bấm ✎ trên thẻ để điền năm mất.')) return;
-    GP.applyChanges(b, id, {years:(ns||'?')+' – ?'});
-    tkRender();
-    if (window.toast) toast('Đã ghi '+r.name+' là đã mất.');
-  }
-  window.tkMarkDead=tkMarkDead;
   function tkRender(){
     var el=document.getElementById('tk-body'); if (!el || !window.GP) return;
     var P=[], nG=0, nA=0, mxG=0;
@@ -2032,7 +2022,7 @@ nav button{font-size:17px}
     h+=song.length?tkBars([['Dưới 18 tuổi',u18],['Từ 18 tuổi trở lên',o18]], song.length):'<p class="empty-note">Chưa có dữ liệu.</p>';
     var cu=song.filter(function(p){ return Y-p.by>=90; }).sort(function(x,y){ return x.by-y.by; });
     h+='<h2 class="tk-h">🙏 Các cụ từ 90 tuổi trở lên (còn sống)</h2>';
-    if (cu.length) h+='<p class="tk-note">Danh sách tính theo năm sinh, đã loại các cụ gia phả ghi là đã mất. <b>Cụ nào đã mất mà gia phả chưa ghi, xin bấm tên → ✎ điền năm mất</b>, cụ sẽ tự rời khỏi danh sách.</p><ol class="tk-list">'+cu.map(function(p){ return '<li><a onclick="showPage(\'danhmuc\');GP.reveal(\''+p.b+'\',\''+p.r.id+'\')"><b>'+escapeHtml(p.r.name)+'</b></a> — sinh '+p.by+' ('+(Y-p.by)+' tuổi) · <span class="mono">'+fmtMa(p.r.ma)+'</span> · '+(p.b==='G'?'Chi Giáp':'Chi Ất')+' · đời '+p.r._g+' <button type="button" class="btn small secondary tk-md" onclick="tkMarkDead(\''+p.b+'\',\''+p.r.id+'\')">Đã mất</button></li>'; }).join('')+'</ol>';
+    if (cu.length) h+='<p class="tk-note">Danh sách tính theo năm sinh, đã loại các cụ gia phả ghi là đã mất. <b>Cụ nào đã mất mà gia phả chưa ghi, xin bấm tên → ✎ điền năm mất</b>, cụ sẽ tự rời khỏi danh sách.</p><ol class="tk-list">'+cu.map(function(p){ return '<li><a onclick="showPage(\'danhmuc\');GP.reveal(\''+p.b+'\',\''+p.r.id+'\')"><b>'+escapeHtml(p.r.name)+'</b></a> — sinh '+p.by+' ('+(Y-p.by)+' tuổi) · <span class="mono">'+fmtMa(p.r.ma)+'</span> · '+(p.b==='G'?'Chi Giáp':'Chi Ất')+' · đời '+p.r._g+'</li>'; }).join('')+'</ol>';
     else h+='<p class="empty-note">Chưa có cụ nào.</p>';
     // gia đình
     var kids=P.filter(function(p){ return p.r._k && p.r._k.length; }), nk=0; kids.forEach(function(p){ nk+=p.r._k.length; });
