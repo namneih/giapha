@@ -30,6 +30,9 @@
   KV.textP=viaQuery().catch(function(){ return listAll('',[]); }).then(function(docs){
     return docs.map(function(x){ return {id:idOf(x), v:val(x)}; }).filter(function(x){ return IMGS.indexOf(x.id)<0 && x.v!==null; });
   });
+  KV.fetchText=function(){ return viaQuery().catch(function(){ return listAll('',[]); }).then(function(docs){
+    return docs.map(function(x){ return {id:idOf(x), v:val(x)}; }).filter(function(x){ return IMGS.indexOf(x.id)<0 && x.v!==null; });
+  }); };
   KV.imgs={};
   KV.imgP=Promise.all(IMGS.slice(0,4).map(function(k){
     return fetch(B+'/kv/'+k+'?key='+K,{cache:'no-store'}).then(function(r){ if (r.status===404) return {k:k,v:''}; if(!r.ok) throw r.status; return r.json().then(function(j){ return {k:k,v:val(j)||''}; }); }).catch(function(){ return {k:k,v:null}; });
@@ -3286,6 +3289,17 @@ nav button{font-size:17px}
       try{ if (window.imgApply) imgApply(); }catch(e){}
     }
     // ---- đường nhanh: 1 yêu cầu REST, không đợi thư viện Firebase ----
+    // quay lại trang (mở lại tab, bật lại Zalo…) thì tự lấy dữ liệu mới nhất; người đang sửa thì không động vào
+    var lastPull=Date.now();
+    function repull(){
+      if (document.hidden || !window.KV || !KV.fetchText || Date.now()-lastPull<20000) return;
+      if (canEdit() || ONL.boot || !ONL.synced) return;
+      lastPull=Date.now();
+      KV.fetchText().then(function(docs){ if (docs && docs.length) applyKv(docs); }).catch(function(){});
+    }
+    document.addEventListener('visibilitychange', repull);
+    window.addEventListener('pageshow', function(e){ if (e.persisted) repull(); });
+    window.addEventListener('focus', repull);
     var restP = window.KV ? KV.textP.then(function(docs){ applyKv(docs); return true; }).catch(function(e){ console.error('REST-APPLY', e && e.message || e); return false; }) : Promise.resolve(false);
     var restImgP = window.KV ? KV.imgP.then(function(m){ IMGK.slice(0,4).forEach(function(k){ applyImg(k, m[k]); }); return Object.keys(m).some(function(k){ return m[k]===null; })?false:true; }).catch(function(){ return false; }) : Promise.resolve(false);
     Promise.all([restP, restImgP]).then(function(r){
@@ -3362,7 +3376,7 @@ nav button{font-size:17px}
 <p class="fnote" data-tx="tbea84839ab">Bản demo gia phả trực tuyến · cập nhật liên tục</p>
   <div class="theme-sw" role="group" aria-label="Chọn giao diện"><button type="button" data-t="formal" onclick="themeSet('formal')">Trang trọng</button><button type="button" data-t="retro" onclick="themeSet('retro')">Hoài niệm</button></div>
   <p><button type="button" id="auth-flink" class="auth-flink" hidden onclick="authClick()">🔑 Đăng nhập (ban quản trị)</button></p>
-<p style="font-size:11px;opacity:.45;margin:6px 0 0;text-align:center">Bản 43</p>
+<p style="font-size:11px;opacity:.45;margin:6px 0 0;text-align:center">Bản 44</p>
 </footer>
 
 <div id="tx-fab" class="tx-fab"><button type="button" class="tx-edit" onclick="txToggle(true)">✎ Sửa trang này</button><button type="button" class="tx-save" onclick="txSave()">✓ Lưu</button><button type="button" class="tx-cancel" onclick="txCancel()">Huỷ</button></div>
