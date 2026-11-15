@@ -21,10 +21,10 @@
   if (!fresh){ d.classList.add('kv-wait'); setTimeout(function(){ KV.release(false); }, 9000); }
   function val(doc){ var f=doc&&doc.fields&&doc.fields.v; return f&&typeof f.stringValue==='string' ? f.stringValue : null; }
   function idOf(doc){ return doc.name.split('/').pop(); }
-  function listAll(tok, acc){ return fetch(B+'/kv?pageSize=300&key='+K+(tok?'&pageToken='+encodeURIComponent(tok):'')).then(function(r){ if(!r.ok) throw r.status; return r.json(); }).then(function(j){ acc=acc.concat(j.documents||[]); return j.nextPageToken ? listAll(j.nextPageToken, acc) : acc; }); }
+  function listAll(tok, acc){ return fetch(B+'/kv?pageSize=300&key='+K+(tok?'&pageToken='+encodeURIComponent(tok):''),{cache:'no-store'}).then(function(r){ if(!r.ok) throw r.status; return r.json(); }).then(function(j){ acc=acc.concat(j.documents||[]); return j.nextPageToken ? listAll(j.nextPageToken, acc) : acc; }); }
   function viaQuery(){
     var refs=IMGS.map(function(k){ return {referenceValue:'projects/'+P+'/databases/(default)/documents/kv/'+k}; });
-    return fetch(B+':runQuery?key='+K,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({structuredQuery:{from:[{collectionId:'kv'}],where:{fieldFilter:{field:{fieldPath:'__name__'},op:'NOT_IN',value:{arrayValue:{values:refs}}}}}})})
+    return fetch(B+':runQuery?key='+K,{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({structuredQuery:{from:[{collectionId:'kv'}],where:{fieldFilter:{field:{fieldPath:'__name__'},op:'NOT_IN',value:{arrayValue:{values:refs}}}}}})})
       .then(function(r){ if(!r.ok) throw r.status; return r.json(); }).then(function(a){ return a.filter(function(x){ return x.document; }).map(function(x){ return x.document; }); });
   }
   KV.textP=viaQuery().catch(function(){ return listAll('',[]); }).then(function(docs){
@@ -32,7 +32,7 @@
   });
   KV.imgs={};
   KV.imgP=Promise.all(IMGS.slice(0,4).map(function(k){
-    return fetch(B+'/kv/'+k+'?key='+K).then(function(r){ if (r.status===404) return {k:k,v:''}; if(!r.ok) throw r.status; return r.json().then(function(j){ return {k:k,v:val(j)||''}; }); }).catch(function(){ return {k:k,v:null}; });
+    return fetch(B+'/kv/'+k+'?key='+K,{cache:'no-store'}).then(function(r){ if (r.status===404) return {k:k,v:''}; if(!r.ok) throw r.status; return r.json().then(function(j){ return {k:k,v:val(j)||''}; }); }).catch(function(){ return {k:k,v:null}; });
   })).then(function(a){ a.forEach(function(x){ KV.imgs[x.k]=x.v; }); return KV.imgs; });
   KV.imgs.__p=0;
   /* tải sớm thư viện Firebase (chỉ dùng cho đăng nhập / chỉnh sửa) */
@@ -2996,6 +2996,7 @@ nav button{font-size:17px}
   // --- gộp phần sửa của mình vào bản chung, không đè phần người khác vừa sửa ---
   function mergeOv(base, mine, cur){
     var out={mod:Object.assign({},cur.mod||{}), add:(cur.add||[]).slice(), del:(cur.del||[]).slice()};
+    out.rev=Math.max(cur.rev||0, mine.rev||0, base.rev||0, 12);
     var bm=base.mod||{}, mm=mine.mod||{};
     Object.keys(mm).forEach(function(id){ if (JSON.stringify(mm[id])!==JSON.stringify(bm[id])) out.mod[id]=mm[id]; });
     var ba={}; (base.add||[]).forEach(function(r){ ba[r.id]=JSON.stringify(r); });
@@ -3265,7 +3266,11 @@ nav button{font-size:17px}
     }
     function applyKv(docs){   // docs: [{id,v}]
       var changed=[], seen={};
-      docs.forEach(function(d){ if (IMGK.indexOf(d.id)>=0) return; var v=d.v; ONL.base[d.id]=v; seen[d.id]=1;
+      docs.forEach(function(d){ if (IMGK.indexOf(d.id)>=0) return; var v=d.v;
+        // Bản trên mạng là bản chuẩn: đã có đủ mọi chỉnh sửa của ban biên tập. Thiếu số "rev" thì coi như đã nâng cấp xong,
+        // tránh việc mỗi máy xem tự chạy lại các bước nâng cấp cũ (làm hiện lại chữ đã xoá).
+        if (d.id.indexOf('gp2_ov_')===0){ try{ var o=JSON.parse(v); if (o && typeof o==='object' && (o.rev||0)<12){ o.rev=12; v=JSON.stringify(o); } }catch(e){} }
+        ONL.base[d.id]=v; seen[d.id]=1;
         if (localStorage.getItem(d.id)!==v){ ONL.rawSet.call(localStorage,d.id,v); changed.push(d.id); } });
       if (docs.length) for (var i=localStorage.length-1;i>=0;i--){ var k=localStorage.key(i); if (isSyncKey(k) && IMGK.indexOf(k)<0 && !seen[k]){ localStorage.removeItem(k); changed.push(k); } }
       ONL.synced=true; document.body.classList.remove('gp-loading');
@@ -3357,6 +3362,7 @@ nav button{font-size:17px}
 <p class="fnote" data-tx="tbea84839ab">Bản demo gia phả trực tuyến · cập nhật liên tục</p>
   <div class="theme-sw" role="group" aria-label="Chọn giao diện"><button type="button" data-t="formal" onclick="themeSet('formal')">Trang trọng</button><button type="button" data-t="retro" onclick="themeSet('retro')">Hoài niệm</button></div>
   <p><button type="button" id="auth-flink" class="auth-flink" hidden onclick="authClick()">🔑 Đăng nhập (ban quản trị)</button></p>
+<p style="font-size:11px;opacity:.45;margin:6px 0 0;text-align:center">Bản 43</p>
 </footer>
 
 <div id="tx-fab" class="tx-fab"><button type="button" class="tx-edit" onclick="txToggle(true)">✎ Sửa trang này</button><button type="button" class="tx-save" onclick="txSave()">✓ Lưu</button><button type="button" class="tx-cancel" onclick="txCancel()">Huỷ</button></div>
