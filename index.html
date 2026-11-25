@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
+<meta name="gp-build" content="45">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Gia Phả Họ Nguyễn Quý — Đại Mỗ</title>
@@ -3030,6 +3031,7 @@ nav button{font-size:17px}
   var pushTimers={};
   function pushKey(k, v){
     if (!ONL.on || !canEdit()) return;
+    if (window.GP_STALE){ alert('Trang này là BẢN CŨ nên chưa lưu được (để không làm hiện lại chữ đã xoá). Xin bấm "Tải lại" ở thanh phía trên rồi sửa lại.'); return; }
     if (ONL.boot) return;                       // đang khởi động: các ghi tự động (nâng cấp dữ liệu…) không phải do người dùng sửa
     if (ONL.base && ONL.base[k]===v) return;    // không có gì thay đổi thì không lưu, không báo "Đã lưu"
     if (GP_TEST){ toast('Bản chạy thử: thay đổi chỉ hiện trên máy này, không lưu lên mạng'); return; }
@@ -3289,6 +3291,34 @@ nav button{font-size:17px}
       try{ if (window.imgApply) imgApply(); }catch(e){}
     }
     // ---- đường nhanh: 1 yêu cầu REST, không đợi thư viện Firebase ----
+    // phát hiện trang đang mở là bản cũ (tab để lâu, Zalo giữ bản cũ): hiện thanh báo, người biên tập phải tải lại mới lưu được
+    var GP_BUILD=45, lastBuild=0;
+    function showStale(){
+      window.GP_STALE=true; if (document.getElementById('stale-bar')) return;
+      var d=document.createElement('div'); d.id='stale-bar';
+      d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:2000;background:#9C1D24;color:#fff;padding:12px 14px;font-size:16px;text-align:center;cursor:pointer';
+      d.textContent='Trang vừa có bản mới. Bấm vào đây để tải lại.'; d.onclick=function(){ location.reload(); };
+      document.body.appendChild(d);
+    }
+    function chkBuild(){
+      if (!/^https?:/.test(location.protocol) || typeof AbortController!=='function' || Date.now()-lastBuild<60000) return;
+      lastBuild=Date.now();
+      var ac=new AbortController();
+      fetch(location.pathname+'?_='+Date.now(),{cache:'no-store',signal:ac.signal}).then(function(r){
+        var rd=r.body&&r.body.getReader?r.body.getReader():null, buf='', dec=new TextDecoder();
+        function done(m){ try{ ac.abort(); }catch(e){} if (m && parseInt(m[1],10)>GP_BUILD) showStale(); }
+        if (!rd) return r.text().then(function(t){ done(t.match(/name="gp-build" content="(\d+)"/)); });
+        (function pump(){ rd.read().then(function(x){
+          if (x.done){ return done(null); }
+          buf+=dec.decode(x.value,{stream:true}); var m=buf.match(/name="gp-build" content="(\d+)"/);
+          if (m || buf.length>20000) return done(m);
+          pump();
+        }); })();
+      }).catch(function(){});
+    }
+    setTimeout(chkBuild, 3000);
+    document.addEventListener('visibilitychange', function(){ if (!document.hidden) chkBuild(); });
+    window.addEventListener('focus', chkBuild);
     // quay lại trang (mở lại tab, bật lại Zalo…) thì tự lấy dữ liệu mới nhất; người đang sửa thì không động vào
     var lastPull=Date.now();
     function repull(){
@@ -3376,7 +3406,7 @@ nav button{font-size:17px}
 <p class="fnote" data-tx="tbea84839ab">Bản demo gia phả trực tuyến · cập nhật liên tục</p>
   <div class="theme-sw" role="group" aria-label="Chọn giao diện"><button type="button" data-t="formal" onclick="themeSet('formal')">Trang trọng</button><button type="button" data-t="retro" onclick="themeSet('retro')">Hoài niệm</button></div>
   <p><button type="button" id="auth-flink" class="auth-flink" hidden onclick="authClick()">🔑 Đăng nhập (ban quản trị)</button></p>
-<p style="font-size:11px;opacity:.45;margin:6px 0 0;text-align:center">Bản 44</p>
+<p style="font-size:11px;opacity:.45;margin:6px 0 0;text-align:center">Bản 45</p>
 </footer>
 
 <div id="tx-fab" class="tx-fab"><button type="button" class="tx-edit" onclick="txToggle(true)">✎ Sửa trang này</button><button type="button" class="tx-save" onclick="txSave()">✓ Lưu</button><button type="button" class="tx-cancel" onclick="txCancel()">Huỷ</button></div>
